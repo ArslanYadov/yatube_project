@@ -22,8 +22,6 @@ class Group(models.Model):
 
 
 class Post(models.Model):
-    POSTS_AMOUNT = 10
-
     text = models.TextField(verbose_name='Текст')
     pub_date = models.DateTimeField(
         verbose_name='Дата публикации',
