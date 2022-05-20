@@ -1,4 +1,6 @@
+from cgitb import text
 from django.shortcuts import get_object_or_404, render, redirect
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from .forms import PostForm
 from .models import Post, Group, User
@@ -83,6 +85,7 @@ def post_detail(request, post_id):
     )
 
 
+@login_required
 def post_create(request):
     username = request.user.get_username()
     user = User.objects.get(username=username)
@@ -103,4 +106,26 @@ def post_create(request):
         request,
         'posts/create_post.html',
         {'form': form}
-    ) 
+    )
+
+
+@login_required
+def post_edit(request, post_id):
+    post = get_object_or_404(Post, pk=post_id)
+    if post.author != request.user:
+        return redirect(f'/posts/{post_id}/')
+    else:
+        if request.method == "POST":
+            form = PostForm(request.POST, instance=post)
+            if form.is_valid():
+                form.save(commit=True)
+                return redirect(f'/posts/{post_id}/')
+    form = PostForm(instance=post)
+    return render(
+            request,
+            'posts/create_post.html',
+            {
+                'form': form,
+                'post': post,
+            }
+        )
