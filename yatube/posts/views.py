@@ -1,5 +1,6 @@
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render, redirect
 from django.core.paginator import Paginator
+from .forms import PostForm
 from .models import Post, Group, User
 from django.db.models import Count
 
@@ -80,3 +81,26 @@ def post_detail(request, post_id):
             'amount': amount,
         }
     )
+
+
+def post_create(request):
+    username = request.user.get_username()
+    user = User.objects.get(username=username)
+    if request.method == 'POST':
+        form = PostForm(request.POST)
+        if form.is_valid():
+            text = form.cleaned_data['text']
+            group = form.cleaned_data['group']
+            Post.objects.create(text=text, author=user, group=group)
+            return redirect(f'/profile/{username}/')
+        return render(
+            request,
+            'posts/create_post.html',
+            {'form': form}
+        )
+    form = PostForm()
+    return render(
+        request,
+        'posts/create_post.html',
+        {'form': form}
+    ) 
