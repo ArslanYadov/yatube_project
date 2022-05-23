@@ -1,10 +1,17 @@
 <article>
 {% for post in page_obj %}
     <ul>
-        <li>Автор: {{ post.author.get_full_name }}</li>
+        <li>Автор: {{ post.author.get_full_name }}
+            {% if bool_flag %}
+                <a href="{% url 'posts:profile' post.author %}">все посты пользователя</a>
+            {% endif %}
+        </li>
         <li>Дата публикации: {{ post.pub_date|date:"d E Y" }}</li>
     </ul>      
     <p>{{ post.text }}</p>
+    {% if bool_flag %}
+        <a href="{% url 'posts:post_detail' post.pk %}">подробная информация</a><br>
+    {% endif %}
     {% if post.group and not group %}
         <a href="{% url 'posts:group_list' post.group.slug %}">все записи группы</a>
     {% endif %}

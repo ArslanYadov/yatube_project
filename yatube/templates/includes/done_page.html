@@ -4,11 +4,13 @@
         <div class="card-header">{{ head }}</div>
         <div class="card-body">
             <p>{{ body }}</p>
-        {% if bool_flag %}
-        <a href="{% url 'users:login' %}">
-            войти
-        </a>
-        {% endif %}
+            {% comment %}
+            {% if bool_flag %}
+            <a href="{% url 'users:login' %}">
+              Войти
+            </a>
+            {% endif %}
+            {% endcomment %}
         </div> <!-- card body -->
       </div> <!-- card -->
     </div> <!-- col -->
