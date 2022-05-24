@@ -9,7 +9,7 @@ from yatube.settings import POSTS_AMOUNT_PER_PAGE
 def get_context(request, queryset):
     paginator = Paginator(queryset, POSTS_AMOUNT_PER_PAGE)
     page_obj = paginator.get_page(request.GET.get('page'))
-    return {'page_obj': page_obj,}
+    return {'page_obj': page_obj, }
 
 
 def index(request):
@@ -27,7 +27,7 @@ def index(request):
 
 def group_posts(request, slug):
     group = get_object_or_404(Group, slug=slug)
-    context = {'group': group,}
+    context = {'group': group, }
     context.update(
         get_context(
             request,
@@ -43,7 +43,7 @@ def group_posts(request, slug):
 
 def profile(request, username):
     author = get_object_or_404(User, username=username)
-    context = {'author': author,}
+    context = {'author': author, }
     context.update(
         get_context(
             request,
@@ -62,7 +62,7 @@ def post_detail(request, post_id):
     return render(
         request,
         'posts/post_detail.html',
-        {'post': post,}
+        {'post': post, }
     )
 
 
@@ -77,7 +77,7 @@ def post_create(request):
     return render(
         request,
         'posts/create_post.html',
-        {'form': form,}
+        {'form': form, }
     )
 
 
@@ -91,10 +91,10 @@ def post_edit(request, post_id):
         form.save(commit=True)
         return redirect('posts:post_detail', post_id)
     return render(
-            request,
-            'posts/create_post.html',
-            {
-                'form': form,
-                'post': post,
-            }
-        )
+        request,
+        'posts/create_post.html',
+        {
+            'form': form,
+            'post': post,
+        }
+    )
