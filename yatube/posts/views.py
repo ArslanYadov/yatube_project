@@ -6,6 +6,7 @@ from .utils import paginate_page
 
 
 def index(request):
+    """Отображает все посты, включая те, у которых есть группа."""
     posts = Post.objects.select_related('author', 'group')
     page_obj = paginate_page(request, posts)
     return render(
@@ -16,6 +17,7 @@ def index(request):
 
 
 def group_posts(request, slug):
+    """Отображает все посты из группы, определенной по slug."""
     group = get_object_or_404(Group, slug=slug)
     page_obj = paginate_page(request, group.posts.all())
     return render(
@@ -29,6 +31,7 @@ def group_posts(request, slug):
 
 
 def profile(request, username):
+    """Отображает посты пользователя, определенного по username."""
     author = get_object_or_404(User, username=username)
     page_obj = paginate_page(request, author.posts.all())
     return render(
@@ -42,6 +45,7 @@ def profile(request, username):
 
 
 def post_detail(request, post_id):
+    """Отображает единичный пост, выбранный по post_id."""
     post = get_object_or_404(Post, pk=post_id)
     return render(
         request,
@@ -52,19 +56,23 @@ def post_detail(request, post_id):
 
 @login_required
 def post_create(request):
+    """
+    Выводит форму для создания поста с полями 'Текст' и 'Группа'.
+    Декотратор отправляет неавторизованного пользователя залогиниться.
+    """
     form = PostForm(request.POST or None)
     if not request.method == 'POST':
         return render(
-        request,
-        'posts/create_post.html',
-        {'form': form, }
-    )
+            request,
+            'posts/create_post.html',
+            {'form': form, }
+        )
     if not form.is_valid():
         return render(
-        request,
-        'posts/create_post.html',
-        {'form': form, }
-    )
+            request,
+            'posts/create_post.html',
+            {'form': form, }
+        )
     post = form.save(commit=False)
     post.author = request.user
     post.save()
@@ -73,27 +81,32 @@ def post_create(request):
 
 @login_required
 def post_edit(request, post_id):
+    """
+    Выводит форму для редактирования поста с проверкой,
+    что пост принадлежит пользователю.
+    Декотратор отправляет неавторизованного пользователя залогиниться.
+    """
     post = get_object_or_404(Post, pk=post_id)
     if post.author != request.user:
         return redirect('posts:post_detail', post_id)
     form = PostForm(request.POST or None, instance=post)
     if not request.method == 'POST':
         return render(
-        request,
-        'posts/create_post.html',
-        {
-            'form': form,
-            'post': post,
-        }
-    )
+            request,
+            'posts/create_post.html',
+            {
+                'form': form,
+                'post': post,
+            }
+        )
     if not form.is_valid():
         return render(
-        request,
-        'posts/create_post.html',
-        {
-            'form': form,
-            'post': post,
-        }
-    )
+            request,
+            'posts/create_post.html',
+            {
+                'form': form,
+                'post': post,
+            }
+        )
     form.save(commit=True)
     return redirect('posts:post_detail', post_id)
