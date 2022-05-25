@@ -43,7 +43,8 @@ class Post(models.Model):
     )
 
     def __str__(self):
-        return self.text
+        TRIM_STRING_LENGTH = 30
+        return self.text[:TRIM_STRING_LENGTH] + '...'
 
     class Meta:
         ordering = ['-pub_date']
