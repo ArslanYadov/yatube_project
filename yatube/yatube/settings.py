@@ -1,4 +1,5 @@
 import os
+from unittest.mock import DEFAULT
 from dotenv import load_dotenv
 from distutils.util import strtobool
 
@@ -105,4 +106,6 @@ EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 
 EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'sent_emails')
 
-POSTS_AMOUNT_PER_PAGE = 10
+DEFAULT_POSTS_AMOUNT_PER_PAGE = 10
+
+POSTS_AMOUNT_PER_PAGE = int(os.getenv('POSTS_AMOUNT_PER_PAGE', DEFAULT_POSTS_AMOUNT_PER_PAGE))
