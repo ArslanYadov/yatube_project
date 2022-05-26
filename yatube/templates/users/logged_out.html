@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
 {% block title %}Вы вышли из системы{% endblock %}
 {% block content %}
-{% include 'includes/done_page.html' with head='Выход' body='Вы вышли из своей учётной записи&#46 Ждём вас снова!' %}
+{% include 'includes/done_page.html' with head='Выход' body='Вы вышли из своей учётной записи. Ждём вас снова!'|escape %}
 {% endblock %} 
