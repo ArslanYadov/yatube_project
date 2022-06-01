@@ -12,16 +12,15 @@ class PostModelTest(TestCase):
         super().setUpClass()
         cls.user = User.objects.create_user(username='auth')
         cls.group = Group.objects.create(
-            title = 'Тестовая группа',
-            slug = 'Тестовый слаг',
-            description = 'Тестовое описание'
+            title='Тестовая группа',
+            slug='Test_slug',
+            description='Тестовое описание'
         )
         cls.post = Post.objects.create(
             author=cls.user,
-            text = 'Тестовый пост'
+            text='Тестовый пост'
         )
 
-    
     def test_models_have_correct_object_names(self):
         """Тестируем правильную работу функций __str__."""
         group = PostModelTest.group
@@ -35,7 +34,6 @@ class PostModelTest(TestCase):
         for models_name, expected_value in str_func.items():
             with self.subTest(models_name=models_name):
                 self.assertEqual(str(models_name), expected_value)
-
 
     def test_post_verboses_name(self):
         """Тестируем verboses_name для Post."""
@@ -51,7 +49,6 @@ class PostModelTest(TestCase):
                     post._meta.get_field(field).verbose_name,
                     expected_value
                 )
-
 
     def test_post_help_text(self):
         """Тестироуем help_text для Post."""

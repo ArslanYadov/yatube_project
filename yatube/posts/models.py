@@ -16,6 +16,7 @@ class Group(models.Model):
     def __str__(self):
         return self.title
 
+
     class Meta:
         verbose_name = 'Группа'
         verbose_name_plural = 'Группы'
@@ -50,6 +51,7 @@ class Post(models.Model):
     def __str__(self):
         TRIM_STRING_LENGTH = 15
         return self.text[:TRIM_STRING_LENGTH]
+
 
     class Meta:
         ordering = ['-pub_date']
