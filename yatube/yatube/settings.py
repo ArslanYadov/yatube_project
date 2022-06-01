@@ -11,7 +11,12 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 
 DEBUG = strtobool(os.getenv('DEBUG', 'False'))
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '[::1]',
+    'testserver',
+]
 
 INSTALLED_APPS = [
     'posts.apps.PostsConfig',
