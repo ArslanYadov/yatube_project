@@ -1,4 +1,3 @@
-from dataclasses import field
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from ..models import Post, Group
@@ -57,12 +56,12 @@ class PostModelTest(TestCase):
     def test_post_help_text(self):
         """Тестироуем help_text для Post."""
         post = PostModelTest.post
-        field_hel_text = {
+        field_help_text = {
             'text': 'Введите текст поста',
             'author': 'Введите имя автора',
             'group': 'Группа, к которой относится пост',
         }
-        for field, expected_value in field_hel_text.items():
+        for field, expected_value in field_help_text.items():
             with self.subTest(field=field):
                 self.assertEqual(
                     post._meta.get_field(field).help_text,
