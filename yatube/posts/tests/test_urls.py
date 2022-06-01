@@ -56,7 +56,7 @@ class PostURLTests(TestCase):
                 response = self.guest_client.get(address)
                 self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
 
-    def test_url_redirect(self):
+    def test_url_uses_redirect(self):
         """Проверка редиректов."""
         post = PostURLTests.post
         redirect_url_names = {

@@ -18,7 +18,7 @@ class StaticPageURLTests(TestCase):
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_url_for_static_page_templates(self):
-        """URL-адрес использует соответствующий шаблон."""
+        """URL-адрес статичных страниц использует соответствующий шаблон."""
         templates_url_name = {
             '/about/author/': 'about/author.html',
             '/about/tech/': 'about/tech.html',
