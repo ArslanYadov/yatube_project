@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
 from http import HTTPStatus
+from django.urls import reverse
 from ..models import Post, Group
 
 
@@ -19,7 +20,8 @@ class PostURLTests(TestCase):
         )
         cls.post = Post.objects.create(
             author=cls.user,
-            text='Тестовый пост'
+            text='Тестовый пост',
+            group=cls.group
         )
 
     def setUp(self):
@@ -32,15 +34,25 @@ class PostURLTests(TestCase):
         Проверка доступности страниц для не авторизованных
         и авторизованных пользователей.
         """
-        group = PostURLTests.group
-        post = PostURLTests.post
         url_names = {
-            '/': 'for_all',
-            f'/group/{group.slug}/': 'for_all',
-            f'/profile/{post.author}/': 'for_all',
-            f'/posts/{post.pk}/': 'for_all',
-            f'/posts/{post.pk}/edit/': 'only_authorized',
-            '/create/': 'only_authorized',
+            reverse('posts:index'): 'for_all',
+            reverse(
+                'posts:group_list',
+                kwargs={'slug': self.group.slug}
+            ): 'for_all',
+            reverse(
+                'posts:profile',
+                kwargs={'username': self.post.author}
+            ): 'for_all',
+            reverse(
+                'posts:post_detail',
+                kwargs={'post_id': self.post.pk}
+            ): 'for_all',
+            reverse(
+                'posts:post_edit',
+                kwargs={'post_id': self.post.pk}
+            ): 'only_authorized',
+            reverse('posts:post_create'): 'only_authorized',
             '/unexisting_page/': 'for_all',
         }
         for address in url_names:
@@ -72,15 +84,25 @@ class PostURLTests(TestCase):
 
     def test_urls_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
-        group = PostURLTests.group
-        post = PostURLTests.post
         templates_url_names = {
-            '/': 'posts/index.html',
-            f'/group/{group.slug}/': 'posts/group_list.html',
-            f'/profile/{post.author}/': 'posts/profile.html',
-            f'/posts/{post.pk}/': 'posts/post_detail.html',
-            f'/posts/{post.pk}/edit/': 'posts/create_post.html',
-            '/create/': 'posts/create_post.html',
+            reverse('posts:index'): 'posts/index.html',
+            reverse(
+                'posts:group_list',
+                kwargs={'slug': self.group.slug}
+            ): 'posts/group_list.html',
+            reverse(
+                'posts:profile',
+                kwargs={'username': self.post.author}
+            ): 'posts/profile.html',
+            reverse(
+                'posts:post_detail',
+                kwargs={'post_id': self.post.pk}
+            ): 'posts/post_detail.html',
+            reverse(
+                'posts:post_edit',
+                kwargs={'post_id': self.post.pk}
+            ): 'posts/create_post.html',
+            reverse('posts:post_create'): 'posts/create_post.html',
         }
         for address, template in templates_url_names.items():
             with self.subTest(address=address):
