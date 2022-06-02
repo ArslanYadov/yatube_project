@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.test import Client, TestCase
 from django import forms
-from ..models import Post, Group
+from posts.models import Post, Group
 
 
 User = get_user_model()
@@ -28,7 +28,7 @@ class PostPagesTests(TestCase):
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
 
-    def test_pages_uses_correct_template(self):
+    def test_pages_show_correct_template(self):
         """URL-адрес view-функций posts использует соответствующий шаблон."""
         templates_pages_name = {
             reverse('posts:index'): 'posts/index.html',
@@ -174,3 +174,101 @@ class PostPagesTests(TestCase):
         for value, expected in object_list.items():
             with self.subTest(value=value):
                 self.assertEqual(value, expected)
+
+    def test_post_create_with_group(self):
+        """
+        Проверка, что при создании поста с группой, она появится:
+        - на главной странице сайта,
+        - на странице выбранной группы,
+        - в профайле пользователя.
+        """
+        data = {
+            'text': 'Тестовый пост',
+            'group': 'Тестовая группа для поста',
+        }
+        response = self.authorized_client.get(reverse('posts:post_create'), data=data)
+        url_list = {
+            reverse('posts:index'): 'index',
+            reverse(
+                'posts:group_list',
+                kwargs={'slug': self.group.slug}
+            ): 'group_list',
+            reverse(
+                'posts:profile',
+                kwargs={'username': self.post.author}
+            ): 'profile',
+        }
+        for url_name in url_list:
+            with self.subTest(url_name=url_name):
+                self.assertTrue(response, url_name)
+
+
+class PaginatorViewsTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create_user(username='auth_2')
+        cls.group = Group.objects.create(
+            title='Тестовая группа 2',
+            slug='Test_slug_2',
+            description='Тестовое описание_2'
+        )
+        cls.posts = []
+        for i in range(13):
+            cls.posts.append(
+                Post(
+                    text=f'Тестовый пост {i}',
+                    author=cls.user,
+                    group=cls.group
+                )
+            )
+        Post.objects.bulk_create(cls.posts)
+
+    def setUp(self):
+        self.guest_client = Client()
+        self.authorized_client = Client()
+        self.authorized_client.force_login(self.user)
+
+    def test_paginator_for_first_page(self):
+        """Тестируем паджинацию первой страницы."""
+        POSTS_PER_PAGE = 10
+        url_dict = {
+            reverse('posts:index'): 'index',
+            reverse(
+                'posts:group_list',
+                kwargs={'slug': self.group.slug}
+            ): 'group',
+            reverse(
+                'posts:profile',
+                kwargs={'username': self.posts[0].author.username}
+            ): 'profile',
+        }
+        for url_name in url_dict:
+            with self.subTest(url_name=url_name):
+                response = self.client.get(url_name)
+                self.assertEqual(
+                    len(response.context.get('page_obj').object_list),
+                    POSTS_PER_PAGE
+                )
+
+    def test_paginator_for_second_page(self):
+        """Тестируем паджинацию второй страницы."""
+        POSTS_PER_PAGE = 3
+        url_dict = {
+            reverse('posts:index') + '?page=2': 'index',
+            reverse(
+                'posts:group_list',
+                kwargs={'slug': self.group.slug}
+            ) + '?page=2': 'group',
+            reverse(
+                'posts:profile',
+                kwargs={'username': self.posts[0].author.username}
+            ) + '?page=2': 'profile',
+        }
+        for url_name in url_dict:
+            with self.subTest(url_name=url_name):
+                response = self.client.get(url_name)
+                self.assertEqual(
+                    len(response.context.get('page_obj').object_list),
+                    POSTS_PER_PAGE
+                )

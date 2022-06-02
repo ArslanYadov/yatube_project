@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
 from http import HTTPStatus
 from django.urls import reverse
-from ..models import Post, Group
+from posts.models import Post, Group
 
 
 User = get_user_model()
@@ -29,10 +29,10 @@ class PostURLTests(TestCase):
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
 
-    def test_urls_exists(self):
+    def test_urls_posts_exists(self):
         """
         Проверка доступности страниц для не авторизованных
-        и авторизованных пользователей.
+        и авторизованных пользователей приложения posts.
         """
         url_names = {
             reverse('posts:index'): 'for_all',
@@ -68,22 +68,31 @@ class PostURLTests(TestCase):
                 response = self.guest_client.get(address)
                 self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
 
-    def test_url_uses_redirect(self):
-        """Проверка редиректов."""
-        post = PostURLTests.post
+    def test_url_posts_uses_redirect(self):
+        """Проверка редиректов для URL-адресов приложения posts."""
         redirect_url_names = {
-            f'/posts/{post.pk}/edit/': (
-                f'/auth/login/?next=/posts/{post.pk}/edit/'
+            reverse(
+                'posts:post_edit',
+                kwargs={'post_id': self.post.pk}
+            ): reverse('users:login')
+            + '?next='
+            + reverse(
+                'posts:post_edit',
+                kwargs={'post_id': self.post.pk}
             ),
-            '/create/': '/auth/login/?next=/create/',
+            reverse('posts:post_create'): (
+                reverse('users:login')
+                + '?next='
+                + reverse('posts:post_create')
+            ),
         }
         for address, template in redirect_url_names.items():
             with self.subTest(address=address):
                 response = self.guest_client.get(address, follow=True)
                 self.assertRedirects(response, template)
 
-    def test_urls_uses_correct_template(self):
-        """URL-адрес использует соответствующий шаблон."""
+    def test_urls_posts_uses_correct_template(self):
+        """URL-адреса приложения posts использует соответствующий шаблон."""
         templates_url_names = {
             reverse('posts:index'): 'posts/index.html',
             reverse(
