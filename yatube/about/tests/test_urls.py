@@ -9,22 +9,22 @@ class StaticPageURLTests(TestCase):
 
     def test_url_for_static_page_exists(self):
         """Проверка доступности URL для статичных страниц."""
-        url_name = [
-            (reverse('about:author')),
-            (reverse('about:tech')),
-        ]
+        url_name = (
+            ('about:author'),
+            ('about:tech'),
+        )
         for address in url_name:
             with self.subTest(address=address):
-                response = self.guest_client.get(address)
+                response = self.guest_client.get(reverse(address))
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_url_for_static_page_templates(self):
         """URL-адрес статичных страниц использует соответствующий шаблон."""
-        templates_url_name = [
-            (reverse('about:author'), 'about/author.html'),
-            (reverse('about:tech'), 'about/tech.html'),
-        ]
+        templates_url_name = (
+            ('about:author', 'about/author.html'),
+            ('about:tech', 'about/tech.html'),
+        )
         for address, template in templates_url_name:
             with self.subTest(address=address):
-                response = self.guest_client.get(address)
+                response = self.guest_client.get(reverse(address))
                 self.assertTemplateUsed(response, template)

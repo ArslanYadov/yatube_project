@@ -1,137 +1,226 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase, Client
-from http import HTTPStatus
 from django.urls import reverse
+from django.test import Client, TestCase
+from django import forms
 from posts.models import Post, Group
-from django.db import transaction
 
 
 User = get_user_model()
 
 
-class PostURLTests(TestCase):
+class PostPagesTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        with transaction.atomic():
-            cls.user = User.objects.create_user(username='auth')
-            cls.group = Group.objects.create(
-                title='Тестовая группа',
-                description='Тестовое описание'
+        cls.user = User.objects.create_user(username='auth')
+        cls.group = Group.objects.create(
+            title='Тестовая группа',
+            description='Тестовое описание'
+        )
+        cls.post = Post.objects.create(
+            text='Тестовый пост',
+            author=PostPagesTests.user,
+            group=PostPagesTests.group
+        )
+        cls.posts = []
+        for _ in range(12):
+            PostPagesTests.posts.append(
+                Post(
+                    text=PostPagesTests.post.text,
+                    author=PostPagesTests.user,
+                    group=PostPagesTests.group
+                )
             )
-            cls.post = Post.objects.create(
-                author=PostURLTests.user,
-                text='Тестовый пост',
-                group=PostURLTests.group
-            )
-            cls.public_urls = (
-                (
-                    reverse('posts:index'),
-                    'posts/index.html'
-                ),
-                (
-                    reverse('posts:group_list', args={PostURLTests.group.slug}),
-                    'posts/group_list.html'
-                ),
-                (
-                    reverse('posts:profile', args={PostURLTests.post.author}),
-                    'posts/profile.html'
-                ),
-                (
-                    reverse('posts:post_detail', args={PostURLTests.post.id}),
-                    'posts/post_detail.html'
-                ),
-            )
-            cls.private_urls = (
-                (reverse('posts:post_create'), 'posts/create_post.html'),
-                (
-                    reverse('posts:post_edit', args={PostURLTests.post.id}),
-                    'posts/create_post.html'
-                ),
-            )
+        Post.objects.bulk_create(PostPagesTests.posts)
+        cls.template_urls = (
+            (
+                reverse('posts:index'),
+                'posts/index.html'
+            ),
+            (
+                reverse('posts:group_list', args={PostPagesTests.group.slug}),
+                'posts/group_list.html'
+            ),
+            (
+                reverse('posts:profile', args={PostPagesTests.post.author}),
+                'posts/profile.html'
+            ),
+            (
+                reverse('posts:post_detail', args={PostPagesTests.post.id}),
+                'posts/post_detail.html'
+            ),
+            (reverse('posts:post_create'), 'posts/create_post.html'),
+            (
+                reverse('posts:post_edit', args={PostPagesTests.post.id}),
+                'posts/create_post.html'
+            ),
+        )
 
     def setUp(self):
-        self.guest_client = Client()
         self.authorized_client = Client()
-        self.authorized_client.force_login(PostURLTests.user)
+        self.authorized_client.force_login(PostPagesTests.user)
 
-    def test_public_urls_response_status_ok(self):
-        """
-        Тестируем существование URL-адресов приложения posts,
-        доступных всем пользователям.
-        """
-        for url in PostURLTests.public_urls:
-            with self.subTest(url=url[0]):
-                response = self.guest_client.get(url[0])
-                self.assertEqual(response.status_code, HTTPStatus.OK)
+    def get_context_from_response(self, response_obj, context_name):
+        """Функция для проверки контекста в тестах."""
+        if context_name == 'page_obj' or context_name == 'post':
+            object_list = (
+                (response_obj.text, PostPagesTests.post.text),
+                (response_obj.author, PostPagesTests.post.author),
+                (response_obj.group.title, PostPagesTests.group.title),
+            )
+        if context_name == 'group':
+            object_list = (
+                (response_obj.title, PostPagesTests.group.title),
+                (response_obj.slug, PostPagesTests.group.slug),
+                (response_obj.description, PostPagesTests.group.description),
+            )
+        for value, expected in object_list:
+            with self.subTest(value=value):
+                self.assertEqual(value, expected)
 
-    def test_all_urls_response_status_ok_with_authorized_user(self):
-        """
-        Тестируем существование всех URL-адресов приложения posts,
-        доступных авторизированным пользователям.
-        """
-        posts_urls = PostURLTests.public_urls + PostURLTests.private_urls
-        for url in posts_urls:
-            with self.subTest(url=url[0]):
-                response = self.authorized_client.get(url[0])
-                self.assertEqual(response.status_code, HTTPStatus.OK)
-
-    def test_public_urls_uses_correct_template(self):
-        """
-        Тестироуем, что публичные URL-адреса приложения posts
-        использвуют правильный шаблон.
-        """
-        for url, template in PostURLTests.public_urls:
-            with self.subTest(url=url):
-                response = self.guest_client.get(url)
-                self.assertTemplateUsed(response, template)
-
-    def test_all_urls_uses_correct_template(self):
-        """
-        Тестироуем, что все URL-адреса приложения posts
-        для авторизованного пользователя использвуют правильный шаблон.
-        """
-        posts_urls = PostURLTests.public_urls + PostURLTests.private_urls
-        for url, template in posts_urls:
+    def test_pages_show_correct_template(self):
+        """URL-адрес view-функций posts использует соответствующий шаблон."""
+        for url, template in PostPagesTests.template_urls:
             with self.subTest(url=url):
                 response = self.authorized_client.get(url)
                 self.assertTemplateUsed(response, template)
 
-    def test_url_access_denied_for_non_authorized_user(self):
-        """
-        Тестируем недоступность URL-адресов приложения posts
-        для не авторизированных пользователей.
-        """
-        for url in PostURLTests.private_urls:
-            with self.subTest(url=url[0]):
-                response = self.guest_client.get(url[0])
-                self.assertEqual(response.status_code, HTTPStatus.FOUND)
+    def test_index_pages_show_correct_context(self):
+        """Шаблон index сформирован с правильным контекстом."""
+        response = self.authorized_client.get(reverse('posts:index'))
+        self.get_context_from_response(
+            response.context['page_obj'][0],
+            'page_obj'
+        )
 
-    def test_url_posts_uses_redirect_for_non_authorized_user(self):
-        """Проверка редиректов для URL-адресов приложения posts."""
-        redirect_url_names = (
+    def test_group_list_page_show_correct_context(self):
+        """Шаблон group_list сформирован с правильным контекстом."""
+        response = self.authorized_client.get(
+            reverse('posts:group_list', args={PostPagesTests.group.slug})
+        )
+        context_list = (
+            (response.context['page_obj'][0], 'page_obj'),
+            (response.context['group'], 'group'),
+        )
+        for response_obj, context_name in context_list:
+            self.get_context_from_response(response_obj, context_name)
+
+    def test_profile_page_show_correct_context(self):
+        """Шаблон profile сформирован с правильным контекстом."""
+        response = self.authorized_client.get(
+            reverse('posts:profile', args={PostPagesTests.post.author})
+        )
+        self.get_context_from_response(
+            response.context['page_obj'][0],
+            'page_obj'
+        )
+        self.assertEqual(
+            response.context['author'].username,
+            PostPagesTests.post.author.username
+        )
+
+    def test_post_detail_page_show_correct_context(self):
+        """Шаблон post_detail сформирован с правильным контекстом."""
+        response = self.authorized_client.get(
+            reverse('posts:post_detail', args={PostPagesTests.post.id})
+        )
+        self.get_context_from_response(response.context['post'], 'post')
+
+    def test_post_create_page_show_correct_context(self):
+        """Шаблон post_create сформирован с правильным контекстом."""
+        response = self.authorized_client.get(
+            reverse('posts:post_create')
+        )
+        form_fields = (
+            ('text', forms.fields.CharField),
+            ('group', forms.models.ModelChoiceField),
+        )
+        for value, expected in form_fields:
+            with self.subTest(value=value):
+                form_field = response.context.get('form').fields.get(value)
+                self.assertIsInstance(form_field, expected)
+
+    def test_post_edit_page_show_correct_context(self):
+        """Шаблон post_edit сформирован с правильным контекстом."""
+        response = self.authorized_client.get(
+            reverse('posts:post_edit', args={PostPagesTests.post.id})
+        )
+        form_fields = (
+            ('text', forms.fields.CharField),
+            ('group', forms.models.ModelChoiceField),
+        )
+        for value, expected in form_fields:
+            with self.subTest(value=value):
+                form_field = response.context.get('form').fields.get(value)
+                self.assertIsInstance(form_field, expected)
+        self.get_context_from_response(response.context['post'], 'post')
+
+    def test_post_create_with_group(self):
+        """
+        Проверка, что при создании поста с группой, она появится:
+        - на главной странице сайта,
+        - на странице выбранной группы,
+        - в профайле пользователя.
+        """
+        form_data = {
+            'text': 'Тестовый пост1',
+            'group': PostPagesTests.group.id,
+        }
+        response = self.authorized_client.post(
+            reverse('posts:post_create'),
+            data=form_data,
+            follow=True
+        )
+        url_list = (
+            ('posts:index', ()),
             (
-                reverse('posts:post_edit', args={PostURLTests.post.id}),
-                reverse('users:login')
-                + '?next='
-                + reverse('posts:post_edit', args={PostURLTests.post.id})
+                'posts:group_list',
+                (PostPagesTests.group.slug,)
             ),
             (
-                reverse('posts:post_create'),
-                reverse('users:login')
-                + '?next='
-                + reverse('posts:post_create')
+                'posts:profile',
+                (PostPagesTests.post.author,)
             ),
         )
-        for url, redirect_url in redirect_url_names:
-            with self.subTest(url=url):
-                response = self.guest_client.get(url, follow=True)
-                self.assertRedirects(response, redirect_url)
+        post = Post.objects.last()
+        for name, args in url_list:
+            with self.subTest(name=name):
+                response = self.client.get(
+                    reverse(name, args=args)
+                )
+                self.assertContains(response, post.text)
 
-    def test_non_exist_url_has_404_page(self):
-        """
-        Проверяем, что не существующий URL-адрес
-        ведет на страницу 404.
-        """
-        response = self.guest_client.get('/non-exist-page/')
-        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+    def test_paginator(self):
+        """Тестируем паджинацию."""
+        POSTS_AMOUNT_FIRST_PAGE = 10
+        POSTS_AMOUNT_SECOND_PAGE = 3
+        paginated_urls = (
+            ('posts:index', ()),
+            (
+                'posts:group_list',
+                (PostPagesTests.group.slug,)
+            ),
+            (
+                'posts:profile',
+                (PostPagesTests.post.author,)
+            ),
+        )
+        pages = (
+            (1, POSTS_AMOUNT_FIRST_PAGE),
+            (2, POSTS_AMOUNT_SECOND_PAGE),
+        )
+        for name, args in paginated_urls:
+            for page, count in pages:
+                with self.subTest(name=name, page=page):
+                    if page < 2:
+                        response = self.client.get(
+                            reverse(name, args=args)
+                        )
+                    if page > 1:
+                        response = self.client.get(
+                            reverse(name, args=args) + f'?page={page}'
+                        )
+                    self.assertEqual(
+                        len(response.context.get('page_obj').object_list),
+                        count
+                    )

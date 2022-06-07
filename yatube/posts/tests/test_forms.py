@@ -70,10 +70,13 @@ class PostCreateFormTests(TestCase):
         Проверяем, что авторизированный пользователь может изменить пост.
         При редактировании поста новый не создается.
         """
+        new_group = Group.objects.create(
+            title='Новая группа'
+        )
         new_post = Post.objects.create(
             text='Текст cуществующего поста',
             author=PostCreateFormTests.user,
-            group=PostCreateFormTests.group,
+            group=new_group,
         )
         response = self.authorized_client.get(
             reverse('posts:post_edit', args={new_post.id})
@@ -88,3 +91,4 @@ class PostCreateFormTests(TestCase):
         post = Post.objects.first()
         self.assertEqual(Post.objects.count(), 1)
         self.assertEqual(post.text, form_data['text'])
+        self.assertNotEqual(post.group, PostCreateFormTests.group.id)
