@@ -2,7 +2,6 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 from posts.models import Group, Post
-from http import HTTPStatus
 
 
 User = get_user_model()
@@ -15,82 +14,77 @@ class PostCreateFormTests(TestCase):
         cls.user = User.objects.create_user(username='auth')
         cls.group = Group.objects.create(
             title='Тестовая группа',
-            slug='Test_slug',
             description='Тестовое описание'
         )
 
     def setUp(self):
         self.guest_client = Client()
         self.authorized_client = Client()
-        self.authorized_client.force_login(self.user)
+        self.authorized_client.force_login(PostCreateFormTests.user)
 
     def test_post_create(self):
-        count_posts = Post.objects.count()
+        """Тестируем, что пост создается."""
         form_data = {
             'text': 'Текст из формы',
-            'group': self.group.id
+            'author': PostCreateFormTests.user,
+            'group': PostCreateFormTests.group.id,
         }
         response = self.authorized_client.post(
             reverse('posts:post_create'),
             data=form_data,
             follow=True,
         )
-        post = Post.objects.get(id=self.group.id)
-        author = User.objects.get(username='auth')
-        group = Group.objects.get(title='Тестовая группа')
-        self.assertEqual(Post.objects.count(), count_posts + 1)
+        post = Post.objects.first()
+        group = PostCreateFormTests.group
         self.assertRedirects(
             response,
-            reverse('posts:profile', kwargs={'username': post.author})
+            reverse('posts:profile', args={post.author})
         )
-        self.assertEqual(post.text, 'Текст из формы')
-        self.assertEqual(author.username, 'auth')
-        self.assertEqual(group.title, 'Тестовая группа')
+        self.assertEqual(post.text, form_data['text'])
+        self.assertEqual(post.author, form_data['author'])
+        self.assertEqual(group.id, form_data['group'])
 
     def test_post_create_guest_client(self):
         """
         Проверяем, что не авторизованный пользователь
-        не может создать пост.
+        перенаправляется залогиниться,
+        и такой пост не создается.
         """
         form_data = {
             'text': 'Пост от неавторизованного пользователя',
             'group': self.group.id
         }
-        self.guest_client.post(
+        response = self.guest_client.post(
             reverse('posts:post_create'),
             data=form_data,
             follow=True,
         )
-        self.assertFalse(
-            Post.objects.filter(
-                text='Пост от неавторизованного пользователя'
-            ).exists()
+        self.assertRedirects(
+            response,
+            reverse('users:login') + '?next=' + reverse('posts:post_create')
         )
+        self.assertEqual(Post.objects.count(), 0)
 
     def test_post_edit_authorized_client(self):
-        """Проверяем, что авторизированный пользователь может изменить пост."""
-        create_form_data = {
-            'text': 'Текст из формы',
-            'group': self.group.id
-        }
-        self.authorized_client.post(
-            reverse('posts:post_create'),
-            data=create_form_data,
-            follow=True,
+        """
+        Проверяем, что авторизированный пользователь может изменить пост.
+        При редактировании поста новый не создается.
+        """
+        new_post = Post.objects.create(
+            text='Текст cуществующего поста',
+            author=PostCreateFormTests.user,
+            group=PostCreateFormTests.group,
         )
-        post = Post.objects.get(id=self.group.id)
-        self.client.get(
-            reverse('posts:post_edit', kwargs={'post_id': post.id})
+        response = self.authorized_client.get(
+            reverse('posts:post_edit', args={new_post.id})
         )
-        edit_form_data = {
-            'text': 'Измененный текст из формы',
-            'group': self.group.id
-        }
+        form_data = response.context['form'].initial
+        form_data['text'] = 'Отредактированный текст'
         response = self.authorized_client.post(
-            reverse('posts:post_edit', kwargs={'post_id': post.id}),
-            data=edit_form_data,
+            reverse('posts:post_edit', args={new_post.id}),
+            data=form_data,
             follow=True,
         )
-        post = Post.objects.get(id=self.group.id)
-        self.assertEqual(response.status_code, HTTPStatus.OK)
-        self.assertEqual(post.text, 'Измененный текст из формы')
+        post = Post.objects.first()
+        self.assertEqual(Post.objects.count(), 1)
+        self.assertEqual(post.text, form_data['text'])
