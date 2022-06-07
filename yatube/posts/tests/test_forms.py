@@ -64,7 +64,7 @@ class PostCreateFormTests(TestCase):
         self.assertFalse(
             Post.objects.filter(
                 text='Пост от неавторизованного пользователя'
-                ).exists()
+            ).exists()
         )
 
     def test_post_edit_authorized_client(self):

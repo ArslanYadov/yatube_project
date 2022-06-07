@@ -13,55 +13,57 @@ class PostModelTest(TestCase):
         cls.user = User.objects.create_user(username='auth')
         cls.group = Group.objects.create(
             title='Тестовая группа',
-            slug='Test_slug',
             description='Тестовое описание'
         )
         cls.post = Post.objects.create(
-            author=cls.user,
+            author=PostModelTest.user,
             text='Тестовый пост',
-            group=cls.group
+            group=PostModelTest.group
         )
 
     def test_models_have_correct_object_names(self):
-        """Тестируем правильную работу функций __str__."""
-        group = PostModelTest.group
-        post = PostModelTest.post
-        expected_object_group_title = group.title
-        expected_object_post_text = post.text
-        str_func = {
-            group: expected_object_group_title,
-            post: expected_object_post_text,
-        }
-        for models_name, expected_value in str_func.items():
+        """
+        Тестируем правильную вывод функций __str__.
+        Проверяем, что кол-во символов для slug группы
+        и text поста не превышает допустимое.
+        """
+        str_func = (
+            (PostModelTest.group, self.group.title),
+            (PostModelTest.post, self.post.text),
+        )
+        for models_name, expected_value in str_func:
             with self.subTest(models_name=models_name):
                 self.assertEqual(str(models_name), expected_value)
+        self.assertEqual(
+            PostModelTest.group._meta.get_field('slug').max_length,
+            len(self.group.slug)
+        )
+        self.assertEqual(len(PostModelTest.post.text), len(self.post.text))
 
     def test_post_verboses_name(self):
         """Тестируем verboses_name для Post."""
-        post = PostModelTest.post
-        field_verboses = {
-            'text': 'Текст',
-            'author': 'Автор',
-            'group': 'Группа',
-        }
-        for field, expected_value in field_verboses.items():
+        field_verboses = (
+            ('text', 'Текст'),
+            ('author', 'Автор'),
+            ('group', 'Группа'),
+        )
+        for field, expected_value in field_verboses:
             with self.subTest(field=field):
                 self.assertEqual(
-                    post._meta.get_field(field).verbose_name,
+                    PostModelTest.post._meta.get_field(field).verbose_name,
                     expected_value
                 )
 
     def test_post_help_text(self):
         """Тестироуем help_text для Post."""
-        post = PostModelTest.post
-        field_help_text = {
-            'text': 'Введите текст поста',
-            'author': 'Введите имя автора',
-            'group': 'Группа, к которой относится пост',
-        }
-        for field, expected_value in field_help_text.items():
+        field_help_text = (
+            ('text', 'Введите текст поста'),
+            ('author', 'Введите имя автора'),
+            ('group', 'Группа, к которой относится пост'),
+        )
+        for field, expected_value in field_help_text:
             with self.subTest(field=field):
                 self.assertEqual(
-                    post._meta.get_field(field).help_text,
+                    PostModelTest.post._meta.get_field(field).help_text,
                     expected_value
                 )
