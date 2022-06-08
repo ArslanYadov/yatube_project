@@ -10,7 +10,6 @@ User = get_user_model()
 class Group(models.Model):
     title = models.CharField(max_length=200, verbose_name='Заголовок')
     slug = models.SlugField(
-        max_length=15,
         verbose_name='URL',
         unique=True
     )
@@ -21,7 +20,7 @@ class Group(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.title)[:TRIM_STRING_LENGTH]
+            self.slug = slugify(self.title)
         super().save(*args, **kwargs)
 
     class Meta:
@@ -56,7 +55,12 @@ class Post(models.Model):
     )
 
     def __str__(self):
-        return self.text[:TRIM_STRING_LENGTH]
+        return self.text
+
+    def save(self, *args, **kwargs):
+        if self.text:
+            self.text = self.text[:TRIM_STRING_LENGTH]
+        super().save(*args, **kwargs)
 
     class Meta:
         ordering = ['-pub_date']

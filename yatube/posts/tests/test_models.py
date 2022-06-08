@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from posts.models import Post, Group
+from yatube.settings import TRIM_STRING_LENGTH
 
 
 User = get_user_model()
@@ -24,8 +25,6 @@ class PostModelTest(TestCase):
     def test_models_have_correct_object_names(self):
         """
         Тестируем правильную вывод функций __str__.
-        Проверяем, что кол-во символов для slug группы
-        и text поста не превышает допустимое.
         """
         str_func = (
             (PostModelTest.group, self.group.title),
@@ -34,11 +33,16 @@ class PostModelTest(TestCase):
         for models_name, expected_value in str_func:
             with self.subTest(models_name=models_name):
                 self.assertEqual(str(models_name), expected_value)
-        self.assertEqual(
-            PostModelTest.group._meta.get_field('slug').max_length,
-            len(self.group.slug)
+
+    def test_post_text_trim(self):
+        """Тестируем обрезку поля текст."""
+        long_post = Post.objects.create(
+            text='Тестовый пост' * 10,
+            author=PostModelTest.user,
+            group=PostModelTest.group
         )
-        self.assertEqual(len(PostModelTest.post.text), len(self.post.text))
+
+        self.assertEqual(len(long_post.text), TRIM_STRING_LENGTH)
 
     def test_post_verboses_name(self):
         """Тестируем verboses_name для Post."""

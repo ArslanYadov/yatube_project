@@ -22,16 +22,6 @@ class PostPagesTests(TestCase):
             author=PostPagesTests.user,
             group=PostPagesTests.group
         )
-        cls.posts = []
-        for _ in range(12):
-            PostPagesTests.posts.append(
-                Post(
-                    text=PostPagesTests.post.text,
-                    author=PostPagesTests.user,
-                    group=PostPagesTests.group
-                )
-            )
-        Post.objects.bulk_create(PostPagesTests.posts)
         cls.index_url = (
             'posts:index',
             'posts/index.html',
@@ -102,7 +92,8 @@ class PostPagesTests(TestCase):
 
     def test_index_pages_show_correct_context(self):
         """Шаблон index сформирован с правильным контекстом."""
-        response = self.authorized_client.get(reverse('posts:index'))
+        name, _, _ = PostPagesTests.index_url
+        response = self.authorized_client.get(reverse(name))
         self.get_context_from_response(
             response.context['page_obj'][0],
             'page_obj'
@@ -110,8 +101,9 @@ class PostPagesTests(TestCase):
 
     def test_group_list_page_show_correct_context(self):
         """Шаблон group_list сформирован с правильным контекстом."""
+        name, _, args = PostPagesTests.group_list_url
         response = self.authorized_client.get(
-            reverse('posts:group_list', args=(PostPagesTests.group.slug,))
+            reverse(name, args=args)
         )
         context_list = (
             (response.context['page_obj'][0], 'page_obj'),
@@ -122,8 +114,9 @@ class PostPagesTests(TestCase):
 
     def test_profile_page_show_correct_context(self):
         """Шаблон profile сформирован с правильным контекстом."""
+        name, _, args = PostPagesTests.profile_url
         response = self.authorized_client.get(
-            reverse('posts:profile', args=(PostPagesTests.post.author,))
+            reverse(name, args=args)
         )
         self.get_context_from_response(
             response.context['page_obj'][0],
@@ -136,15 +129,17 @@ class PostPagesTests(TestCase):
 
     def test_post_detail_page_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
+        name, _, args = PostPagesTests.post_detail_url
         response = self.authorized_client.get(
-            reverse('posts:post_detail', args=(PostPagesTests.post.id,))
+            reverse(name, args=args)
         )
         self.get_context_from_response(response.context['post'], 'post')
 
     def test_post_create_page_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""
+        name, _, _ = PostPagesTests.post_create_url
         response = self.authorized_client.get(
-            reverse('posts:post_create')
+            reverse(name)
         )
         form_fields = (
             ('text', forms.fields.CharField),
@@ -157,8 +152,9 @@ class PostPagesTests(TestCase):
 
     def test_post_edit_page_show_correct_context(self):
         """Шаблон post_edit сформирован с правильным контекстом."""
+        name, _, args = PostPagesTests.post_edit_url
         response = self.authorized_client.get(
-            reverse('posts:post_edit', args=(PostPagesTests.post.id,))
+            reverse(name, args=args)
         )
         form_fields = (
             ('text', forms.fields.CharField),
@@ -177,12 +173,13 @@ class PostPagesTests(TestCase):
         - на странице выбранной группы,
         - в профайле пользователя.
         """
+        name, _, _ = PostPagesTests.post_create_url
         form_data = {
             'text': 'Тестовый пост1',
             'group': PostPagesTests.group.id,
         }
         response = self.authorized_client.post(
-            reverse('posts:post_create'),
+            reverse(name),
             data=form_data,
             follow=True
         )
@@ -203,6 +200,14 @@ class PostPagesTests(TestCase):
         """Тестируем паджинацию."""
         POSTS_AMOUNT_FIRST_PAGE = 10
         POSTS_AMOUNT_SECOND_PAGE = 3
+        posts_list = [
+            Post(
+                text=PostPagesTests.post.text,
+                author=PostPagesTests.user,
+                group=PostPagesTests.group
+            ) for _ in range(12)
+        ]
+        Post.objects.bulk_create(posts_list)
         paginated_urls = (
             PostPagesTests.index_url,
             PostPagesTests.group_list_url,
