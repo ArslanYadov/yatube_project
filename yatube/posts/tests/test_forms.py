@@ -38,7 +38,7 @@ class PostCreateFormTests(TestCase):
         group = PostCreateFormTests.group
         self.assertRedirects(
             response,
-            reverse('posts:profile', args={post.author})
+            reverse('posts:profile', args=(post.author,))
         )
         self.assertEqual(post.text, form_data['text'])
         self.assertEqual(post.author, form_data['author'])
@@ -79,12 +79,12 @@ class PostCreateFormTests(TestCase):
             group=new_group,
         )
         response = self.authorized_client.get(
-            reverse('posts:post_edit', args={new_post.id})
+            reverse('posts:post_edit', args=(new_post.id,))
         )
         form_data = response.context['form'].initial
         form_data['text'] = 'Отредактированный текст'
         response = self.authorized_client.post(
-            reverse('posts:post_edit', args={new_post.id}),
+            reverse('posts:post_edit', args=(new_post.id,)),
             data=form_data,
             follow=True,
         )

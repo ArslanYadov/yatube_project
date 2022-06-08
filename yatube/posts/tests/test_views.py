@@ -32,28 +32,43 @@ class PostPagesTests(TestCase):
                 )
             )
         Post.objects.bulk_create(PostPagesTests.posts)
-        cls.template_urls = (
-            (
-                reverse('posts:index'),
-                'posts/index.html'
-            ),
-            (
-                reverse('posts:group_list', args={PostPagesTests.group.slug}),
-                'posts/group_list.html'
-            ),
-            (
-                reverse('posts:profile', args={PostPagesTests.post.author}),
-                'posts/profile.html'
-            ),
-            (
-                reverse('posts:post_detail', args={PostPagesTests.post.id}),
-                'posts/post_detail.html'
-            ),
-            (reverse('posts:post_create'), 'posts/create_post.html'),
-            (
-                reverse('posts:post_edit', args={PostPagesTests.post.id}),
-                'posts/create_post.html'
-            ),
+        cls.index_url = (
+            'posts:index',
+            'posts/index.html',
+            ()
+        )
+        cls.group_list_url = (
+            'posts:group_list',
+            'posts/group_list.html',
+            (PostPagesTests.group.slug,)
+        )
+        cls.profile_url = (
+            'posts:profile',
+            'posts/profile.html',
+            (PostPagesTests.post.author,)
+        )
+        cls.post_detail_url = (
+            'posts:post_detail',
+            'posts/post_detail.html',
+            (PostPagesTests.post.id,)
+        )
+        cls.post_create_url = (
+            'posts:post_create',
+            'posts/create_post.html',
+            ()
+        )
+        cls.post_edit_url = (
+            'posts:post_edit',
+            'posts/create_post.html',
+            (PostPagesTests.post.id,)
+        )
+        cls.all_posts_app_urls = (
+            PostPagesTests.index_url,
+            PostPagesTests.group_list_url,
+            PostPagesTests.profile_url,
+            PostPagesTests.post_detail_url,
+            PostPagesTests.post_create_url,
+            PostPagesTests.post_edit_url
         )
 
     def setUp(self):
@@ -80,9 +95,9 @@ class PostPagesTests(TestCase):
 
     def test_pages_show_correct_template(self):
         """URL-адрес view-функций posts использует соответствующий шаблон."""
-        for url, template in PostPagesTests.template_urls:
-            with self.subTest(url=url):
-                response = self.authorized_client.get(url)
+        for name, template, args in PostPagesTests.all_posts_app_urls:
+            with self.subTest(name=name):
+                response = self.authorized_client.get(reverse(name, args=args))
                 self.assertTemplateUsed(response, template)
 
     def test_index_pages_show_correct_context(self):
@@ -96,7 +111,7 @@ class PostPagesTests(TestCase):
     def test_group_list_page_show_correct_context(self):
         """Шаблон group_list сформирован с правильным контекстом."""
         response = self.authorized_client.get(
-            reverse('posts:group_list', args={PostPagesTests.group.slug})
+            reverse('posts:group_list', args=(PostPagesTests.group.slug,))
         )
         context_list = (
             (response.context['page_obj'][0], 'page_obj'),
@@ -108,7 +123,7 @@ class PostPagesTests(TestCase):
     def test_profile_page_show_correct_context(self):
         """Шаблон profile сформирован с правильным контекстом."""
         response = self.authorized_client.get(
-            reverse('posts:profile', args={PostPagesTests.post.author})
+            reverse('posts:profile', args=(PostPagesTests.post.author,))
         )
         self.get_context_from_response(
             response.context['page_obj'][0],
@@ -122,7 +137,7 @@ class PostPagesTests(TestCase):
     def test_post_detail_page_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
         response = self.authorized_client.get(
-            reverse('posts:post_detail', args={PostPagesTests.post.id})
+            reverse('posts:post_detail', args=(PostPagesTests.post.id,))
         )
         self.get_context_from_response(response.context['post'], 'post')
 
@@ -131,11 +146,11 @@ class PostPagesTests(TestCase):
         response = self.authorized_client.get(
             reverse('posts:post_create')
         )
-        form_fields = {
-            'text': forms.fields.CharField,
-            'group': forms.models.ModelChoiceField,
-        }
-        for value, expected in form_fields.items():
+        form_fields = (
+            ('text', forms.fields.CharField),
+            ('group', forms.models.ModelChoiceField),
+        )
+        for value, expected in form_fields:
             with self.subTest(value=value):
                 form_field = response.context.get('form').fields.get(value)
                 self.assertIsInstance(form_field, expected)
@@ -143,13 +158,13 @@ class PostPagesTests(TestCase):
     def test_post_edit_page_show_correct_context(self):
         """Шаблон post_edit сформирован с правильным контекстом."""
         response = self.authorized_client.get(
-            reverse('posts:post_edit', args={PostPagesTests.post.id})
+            reverse('posts:post_edit', args=(PostPagesTests.post.id,))
         )
-        form_fields = {
-            'text': forms.fields.CharField,
-            'group': forms.models.ModelChoiceField,
-        }
-        for value, expected in form_fields.items():
+        form_fields = (
+            ('text', forms.fields.CharField),
+            ('group', forms.models.ModelChoiceField),
+        )
+        for value, expected in form_fields:
             with self.subTest(value=value):
                 form_field = response.context.get('form').fields.get(value)
                 self.assertIsInstance(form_field, expected)
@@ -162,69 +177,53 @@ class PostPagesTests(TestCase):
         - на странице выбранной группы,
         - в профайле пользователя.
         """
-        data = {
-            'text': 'Тестовый пост',
-            'group': 'Тестовая группа для поста',
+        form_data = {
+            'text': 'Тестовый пост1',
+            'group': PostPagesTests.group.id,
         }
-        response = self.authorized_client.get(
+        response = self.authorized_client.post(
             reverse('posts:post_create'),
-            data=data
+            data=form_data,
+            follow=True
         )
-        url_list = {
-            reverse('posts:index'): 'index',
-            reverse(
-                'posts:group_list',
-                args={PostPagesTests.group.slug}
-            ): 'group_list',
-            reverse(
-                'posts:profile',
-                args={PostPagesTests.post.author}
-            ): 'profile',
-        }
-        for url_name in url_list:
-            with self.subTest(url_name=url_name):
-                self.assertTrue(response, url_name)
-
-    def test_paginator_for_first_page(self):
-        """Тестируем паджинацию первой страницы."""
-        POSTS_PER_PAGE = 10
-        url_dict = {
-            reverse('posts:index'): 'index',
-            reverse(
-                'posts:group_list',
-                args={PostPagesTests.group.slug}
-            ): 'group',
-            reverse(
-                'posts:profile',
-                args={PostPagesTests.posts[0].author.username}
-            ): 'profile',
-        }
-        for url_name in url_dict:
-            with self.subTest(url_name=url_name):
-                response = self.client.get(url_name)
-                self.assertEqual(
-                    len(response.context.get('page_obj').object_list),
-                    POSTS_PER_PAGE
+        url_list = (
+            PostPagesTests.index_url,
+            PostPagesTests.group_list_url,
+            PostPagesTests.profile_url,
+        )
+        post = Post.objects.last()
+        for name, _, args in url_list:
+            with self.subTest(name=name):
+                response = self.client.get(
+                    reverse(name, args=args)
                 )
+                self.assertContains(response, post.text)
 
-    def test_paginator_for_second_page(self):
-        """Тестируем паджинацию второй страницы."""
-        POSTS_PER_PAGE = 3
-        url_dict = {
-            reverse('posts:index') + '?page=2': 'index',
-            reverse(
-                'posts:group_list',
-                args={PostPagesTests.group.slug}
-            ) + '?page=2': 'group',
-            reverse(
-                'posts:profile',
-                args={PostPagesTests.posts[0].author.username}
-            ) + '?page=2': 'profile',
-        }
-        for url_name in url_dict:
-            with self.subTest(url_name=url_name):
-                response = self.client.get(url_name)
-                self.assertEqual(
-                    len(response.context.get('page_obj').object_list),
-                    POSTS_PER_PAGE
-                )
+    def test_paginator(self):
+        """Тестируем паджинацию."""
+        POSTS_AMOUNT_FIRST_PAGE = 10
+        POSTS_AMOUNT_SECOND_PAGE = 3
+        paginated_urls = (
+            PostPagesTests.index_url,
+            PostPagesTests.group_list_url,
+            PostPagesTests.profile_url,
+        )
+        pages = (
+            (1, POSTS_AMOUNT_FIRST_PAGE),
+            (2, POSTS_AMOUNT_SECOND_PAGE),
+        )
+        for name, _, args in paginated_urls:
+            for page, count in pages:
+                with self.subTest(name=name, page=page):
+                    if page < 2:
+                        response = self.client.get(
+                            reverse(name, args=args)
+                        )
+                    if page > 1:
+                        response = self.client.get(
+                            reverse(name, args=args) + f'?page={page}'
+                        )
+                    self.assertEqual(
+                        len(response.context.get('page_obj').object_list),
+                        count
+                    )

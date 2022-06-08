@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from pytils.translit import slugify
+from yatube.settings import TRIM_STRING_LENGTH
 
 
 User = get_user_model()
@@ -8,6 +10,7 @@ User = get_user_model()
 class Group(models.Model):
     title = models.CharField(max_length=200, verbose_name='Заголовок')
     slug = models.SlugField(
+        max_length=15,
         verbose_name='URL',
         unique=True
     )
@@ -15,6 +18,11 @@ class Group(models.Model):
 
     def __str__(self):
         return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)[:TRIM_STRING_LENGTH]
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = 'Группа'
@@ -48,7 +56,6 @@ class Post(models.Model):
     )
 
     def __str__(self):
-        TRIM_STRING_LENGTH = 15
         return self.text[:TRIM_STRING_LENGTH]
 
     class Meta:
