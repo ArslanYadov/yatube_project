@@ -55,12 +55,7 @@ class Post(models.Model):
     )
 
     def __str__(self):
-        return self.text
-
-    def save(self, *args, **kwargs):
-        if self.text:
-            self.text = self.text[:TRIM_STRING_LENGTH]
-        super().save(*args, **kwargs)
+        return self.text[:TRIM_STRING_LENGTH]
 
     class Meta:
         ordering = ['-pub_date']

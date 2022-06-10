@@ -41,8 +41,7 @@ class PostModelTest(TestCase):
             author=PostModelTest.user,
             group=PostModelTest.group
         )
-
-        self.assertEqual(len(long_post.text), TRIM_STRING_LENGTH)
+        self.assertEqual(str(long_post), long_post.text[:TRIM_STRING_LENGTH])
 
     def test_post_verboses_name(self):
         """Тестируем verboses_name для Post."""
