@@ -47,10 +47,13 @@ def profile(request, username):
 def post_detail(request, post_id):
     """Отображает единичный пост, выбранный по post_id."""
     post = get_object_or_404(Post, pk=post_id)
+    is_edit = True
+    if post.author != request.user:
+        is_edit = False
     return render(
         request,
         'posts/post_detail.html',
-        {'post': post, }
+        {'post': post, 'is_edit': is_edit, }
     )
 
 
@@ -60,7 +63,10 @@ def post_create(request):
     Выводит форму для создания поста с полями 'Текст' и 'Группа'.
     Декотратор отправляет неавторизованного пользователя залогиниться.
     """
-    form = PostForm(request.POST or None)
+    form = PostForm(
+        request.POST or None,
+        files=request.FILES or None
+    )
     if not request.method == 'POST':
         return render(
             request,
@@ -89,7 +95,11 @@ def post_edit(request, post_id):
     post = get_object_or_404(Post, pk=post_id)
     if post.author != request.user:
         return redirect('posts:post_detail', post_id)
-    form = PostForm(request.POST or None, instance=post)
+    form = PostForm(
+        request.POST or None,
+        files=request.FILES or None,
+        instance=post
+    )
     if not request.method == 'POST':
         return render(
             request,

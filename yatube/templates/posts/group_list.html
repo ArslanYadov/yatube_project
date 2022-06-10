@@ -3,6 +3,6 @@
 {% block content %}
 <h1>{{ group.title }}</h1>
 <p>{{ group.description }}</p>
-{% include 'includes/post.html' %}
+{% include 'includes/post.html' with bool_flag=True %}
 {% include 'includes/paginator.html' %}
 {% endblock %}

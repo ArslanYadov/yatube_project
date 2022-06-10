@@ -2,6 +2,6 @@
 {% block title %}Последние обновления на сайте{% endblock %}
 {% block content %}
 <h1>Последние обновления на сайте</h1>
-{% include 'includes/post.html' %}
+{% include 'includes/post.html' with bool_flag=True %}
 {% include 'includes/paginator.html' %}
 {% endblock %}

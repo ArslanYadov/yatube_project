@@ -19,16 +19,17 @@ ALLOWED_HOSTS = [
 ]
 
 INSTALLED_APPS = [
-    'posts.apps.PostsConfig',
-    'users.apps.UsersConfig',
-    'core.apps.CoreConfig',
-    'about.apps.AboutConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'posts.apps.PostsConfig',
+    'users.apps.UsersConfig',
+    'core.apps.CoreConfig',
+    'about.apps.AboutConfig',
+    'sorl.thumbnail',
 ]
 
 MIDDLEWARE = [
@@ -116,3 +117,9 @@ DEFAULT_POSTS_AMOUNT_PER_PAGE = 10
 POSTS_AMOUNT_PER_PAGE = int(os.getenv('POSTS_AMOUNT_PER_PAGE', DEFAULT_POSTS_AMOUNT_PER_PAGE))
 
 TRIM_STRING_LENGTH = 100
+
+CSRF_FAILURE_VIEW = 'core.views.csrf_failure'
+
+MEDIA_URL = '/media/'
+
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
