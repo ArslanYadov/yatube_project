@@ -7,6 +7,7 @@ from django.test import Client, TestCase, override_settings
 from django import forms
 from posts.models import Post, Group
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.cache import cache
 from yatube.settings import MEDIA_ROOT
 
 
@@ -100,6 +101,7 @@ class PostPagesTests(TestCase):
         self.authorized_client_for_comment.force_login(
             User.objects.create(username='CommentUser')
         )
+        cache.clear()
 
     def get_context_from_response(self, response_obj, context_name):
         """Функция для проверки контекста в тестах."""
@@ -308,3 +310,23 @@ class PostPagesTests(TestCase):
                         len(response.context.get('page_obj').object_list),
                         count
                     )
+
+    def test_index_cache(self):
+        """Тестируем кэш для главное страницы."""
+        name, _, _ = PostPagesTests.index_url
+        response = self.authorized_client.get(
+            reverse(name)
+        )
+        Post.objects.create(
+            text='Новый пост',
+            author=PostPagesTests.user
+        )
+        response_new = self.authorized_client.get(
+            reverse(name)
+        )
+        self.assertEqual(response.content, response_new.content)
+        cache.clear()
+        response_new = self.authorized_client.get(
+            reverse(name)
+        )
+        self.assertNotEqual(response.content, response_new.content)

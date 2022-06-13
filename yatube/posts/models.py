@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from pytils.translit import slugify
 from yatube.settings import TRIM_STRING_LENGTH
+from core.models import CreatedModel
 
 
 User = get_user_model()
@@ -28,14 +29,10 @@ class Group(models.Model):
         verbose_name_plural = 'Группы'
 
 
-class Post(models.Model):
+class Post(CreatedModel):
     text = models.TextField(
         verbose_name='Текст',
         help_text='Введите текст поста'
-    )
-    pub_date = models.DateTimeField(
-        verbose_name='Дата публикации',
-        auto_now_add=True
     )
     author = models.ForeignKey(
         User,
@@ -64,12 +61,12 @@ class Post(models.Model):
         return self.text[:TRIM_STRING_LENGTH]
 
     class Meta:
-        ordering = ['-pub_date']
+        ordering = ['-created']
         verbose_name = 'Пост'
         verbose_name_plural = 'Посты'
 
 
-class Comment(models.Model):
+class Comment(CreatedModel):
     post = models.ForeignKey(
         Post,
         verbose_name='Пост',
@@ -85,11 +82,8 @@ class Comment(models.Model):
         related_name='comments'
     )
     text = models.TextField(
-        verbose_name='Текст комментария'
-    )
-    created = models.DateField(
-        verbose_name='Дата создания комментария',
-        auto_now_add=True
+        verbose_name='Текст комментария',
+        help_text='Текст нового комментария'
     )
 
     def __str__(self):

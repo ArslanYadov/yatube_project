@@ -3,6 +3,7 @@ from django.test import TestCase, Client
 from http import HTTPStatus
 from django.urls import reverse
 from posts.models import Post, Group
+from django.core.cache import cache
 
 
 User = get_user_model()
@@ -70,6 +71,7 @@ class PostURLTests(TestCase):
         self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(PostURLTests.user)
+        cache.clear()
 
     def test_public_urls_response_status_ok(self):
         """
