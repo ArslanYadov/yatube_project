@@ -74,6 +74,11 @@ class PostPagesTests(TestCase):
             'posts/create_post.html',
             (PostPagesTests.post.id,)
         )
+        cls.add_comment_url = (
+            'posts:add_comment',
+            'posts/post_detail.html',
+            (PostPagesTests.post.id,)
+        )
         cls.all_posts_app_urls = (
             PostPagesTests.index_url,
             PostPagesTests.group_list_url,
@@ -91,6 +96,10 @@ class PostPagesTests(TestCase):
     def setUp(self):
         self.authorized_client = Client()
         self.authorized_client.force_login(PostPagesTests.user)
+        self.authorized_client_for_comment = Client()
+        self.authorized_client_for_comment.force_login(
+            User.objects.create(username='CommentUser')
+        )
 
     def get_context_from_response(self, response_obj, context_name):
         """Функция для проверки контекста в тестах."""
@@ -225,6 +234,43 @@ class PostPagesTests(TestCase):
                     reverse(name, args=args)
                 )
                 self.assertContains(response, post.text)
+
+    def test_non_authorized_user_can_not_comment_post(self):
+        """
+        Не авторизированный пользователь не может комментить посты.
+        """
+        name, _, args = PostPagesTests.add_comment_url
+        self.client.post(
+            reverse(name, args=args),
+            data={
+                'text': 'Комментарий к посту',
+            },
+            follow=True
+        )
+        post = Post.objects.first()
+        self.assertEqual(post.comments.count(), 0)
+
+    def test_authorized_user_can_comment_post(self):
+        """
+        Авторизированный пользователь может комментить посты.
+        """
+        name, _, args = PostPagesTests.add_comment_url
+        self.authorized_client_for_comment.post(
+            reverse(name, args=args),
+            data={
+                'text': 'Комментарий к посту',
+            },
+            follow=True
+        )
+        post = Post.objects.first()
+        comment = post.comments.first()
+        self.assertEqual(post.comments.count(), 1)
+        self.assertNotEqual(comment.author, post.author)
+        name, _, args = PostPagesTests.post_detail_url
+        response = self.client.get(
+            reverse(name, args=args)
+        )
+        self.assertContains(response, comment.text)
 
     def test_paginator(self):
         """Тестируем паджинацию."""
