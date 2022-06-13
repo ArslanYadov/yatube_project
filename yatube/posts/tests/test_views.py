@@ -1,13 +1,21 @@
+import shutil
+import tempfile
+
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django import forms
 from posts.models import Post, Group
+from django.core.files.uploadedfile import SimpleUploadedFile
+from yatube.settings import MEDIA_ROOT
 
+
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=MEDIA_ROOT)
 
 User = get_user_model()
 
 
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostPagesTests(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -17,10 +25,24 @@ class PostPagesTests(TestCase):
             title='Тестовая группа',
             description='Тестовое описание'
         )
+        cls.small_gif = (
+             b'\x47\x49\x46\x38\x39\x61\x02\x00'
+             b'\x01\x00\x80\x00\x00\x00\x00\x00'
+             b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+             b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+             b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+             b'\x0A\x00\x3B'
+        )
+        cls.uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=PostPagesTests.small_gif,
+            content_type='image/gif'
+        )
         cls.post = Post.objects.create(
             text='Тестовый пост',
             author=PostPagesTests.user,
-            group=PostPagesTests.group
+            group=PostPagesTests.group,
+            image=PostPagesTests.uploaded
         )
         cls.index_url = (
             'posts:index',
@@ -61,6 +83,11 @@ class PostPagesTests(TestCase):
             PostPagesTests.post_edit_url
         )
 
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+
     def setUp(self):
         self.authorized_client = Client()
         self.authorized_client.force_login(PostPagesTests.user)
@@ -72,6 +99,7 @@ class PostPagesTests(TestCase):
                 (response_obj.text, PostPagesTests.post.text),
                 (response_obj.author, PostPagesTests.post.author),
                 (response_obj.group.title, PostPagesTests.group.title),
+                (response_obj.image, PostPagesTests.post.image),
             )
         if context_name == 'group':
             object_list = (
@@ -144,6 +172,7 @@ class PostPagesTests(TestCase):
         form_fields = (
             ('text', forms.fields.CharField),
             ('group', forms.models.ModelChoiceField),
+            ('image', forms.fields.ImageField),
         )
         for value, expected in form_fields:
             with self.subTest(value=value):
@@ -159,6 +188,7 @@ class PostPagesTests(TestCase):
         form_fields = (
             ('text', forms.fields.CharField),
             ('group', forms.models.ModelChoiceField),
+            ('image', forms.fields.ImageField),
         )
         for value, expected in form_fields:
             with self.subTest(value=value):

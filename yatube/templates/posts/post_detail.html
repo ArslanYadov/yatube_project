@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
+{% load thumbnail %}
 {% block title %}Пост {{ post.text|truncatechars:30 }}{% endblock %}
 {% block content %}
-{% load thumbnail %}
 <div class="row">
   <aside class="col-12 col-md-3">
     <ul class="list-group list-group-flush">
@@ -34,7 +34,7 @@
       <img class="card-img my-2" src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}">
     {% endthumbnail %}   
     <p>{{ post.text }}</p>
-    {% if is_edit %}
+    {% if post.author == request.user %}
       <a class="btn btn-primary" href="{% url 'posts:post_edit' post.pk %}">редактировать запись</a>
     {% endif %}
   </article>

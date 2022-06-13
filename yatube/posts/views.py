@@ -47,20 +47,18 @@ def profile(request, username):
 def post_detail(request, post_id):
     """Отображает единичный пост, выбранный по post_id."""
     post = get_object_or_404(Post, pk=post_id)
-    is_edit = True
-    if post.author != request.user:
-        is_edit = False
     return render(
         request,
         'posts/post_detail.html',
-        {'post': post, 'is_edit': is_edit, }
+        {'post': post, }
     )
 
 
 @login_required
 def post_create(request):
     """
-    Выводит форму для создания поста с полями 'Текст' и 'Группа'.
+    Выводит форму для создания поста с полями:
+    'Текст', 'Группа' и 'Загрузить картинку'.
     Декотратор отправляет неавторизованного пользователя залогиниться.
     """
     form = PostForm(

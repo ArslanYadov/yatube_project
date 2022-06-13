@@ -52,6 +52,7 @@ class PostModelTest(TestCase):
             ('text', 'Текст'),
             ('author', 'Автор'),
             ('group', 'Группа'),
+            ('image', 'Картинка'),
         )
         for field, expected_value in field_verboses:
             with self.subTest(field=field):
