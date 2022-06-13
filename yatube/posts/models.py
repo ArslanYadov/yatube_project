@@ -67,3 +67,35 @@ class Post(models.Model):
         ordering = ['-pub_date']
         verbose_name = 'Пост'
         verbose_name_plural = 'Посты'
+
+
+class Comment(models.Model):
+    post = models.ForeignKey(
+        Post,
+        verbose_name='Пост',
+        blank=True,
+        null=True,
+        on_delete=models.CASCADE,
+        related_name='comments'
+    )
+    author = models.ForeignKey(
+        User,
+        verbose_name='Автор комментария',
+        on_delete=models.CASCADE,
+        related_name='comments'
+    )
+    text = models.TextField(
+        verbose_name='Текст комментария'
+    )
+    created = models.DateField(
+        verbose_name='Дата создания комментария',
+        auto_now_add=True
+    )
+
+    def __str__(self):
+        return self.text
+
+    class Meta:
+        ordering = ['created']
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'

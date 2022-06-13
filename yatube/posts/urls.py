@@ -17,4 +17,6 @@ urlpatterns = [
     path('create/', views.post_create, name='post_create'),
     # Url к редактированию поста по post_id
     path('posts/<int:post_id>/edit/', views.post_edit, name='post_edit'),
+    # Url к добавлению комментария к посту по post_id
+    path('posts/<int:post_id>/comment/', views.add_comment, name='add_comment'),
 ]
