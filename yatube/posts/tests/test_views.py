@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.test import Client, TestCase, override_settings
 from django import forms
-from posts.models import Post, Group
+from posts.models import Post, Group, Follow
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.cache import cache
 from yatube.settings import MEDIA_ROOT
@@ -165,6 +165,9 @@ class PostPagesTests(TestCase):
             response.context['author'].username,
             PostPagesTests.post.author.username
         )
+        self.assertFalse(
+            response.context['following']
+        )
 
     def test_post_detail_page_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
@@ -173,6 +176,13 @@ class PostPagesTests(TestCase):
             reverse(name, args=args)
         )
         self.get_context_from_response(response.context['post'], 'post')
+        form_fields = (
+            ('text', forms.fields.CharField),
+        )
+        for value, expected in form_fields:
+            with self.subTest(value=value):
+                form_field = response.context.get('form').fields.get(value)
+                self.assertIsInstance(form_field, expected)
 
     def test_post_create_page_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""
@@ -330,3 +340,72 @@ class PostPagesTests(TestCase):
             reverse(name)
         )
         self.assertNotEqual(response.content, response_new.content)
+
+
+class FollowViewTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.blog_author = User.objects.create_user(username='Bloger')
+        cls.user = User.objects.create_user(username='Follower')
+
+    def setUp(self):
+        self.authorized_blog_author = Client()
+        self.authorized_follower_user = Client()
+        self.authorized_blog_author.force_login(FollowViewTest.blog_author)
+        self.authorized_follower_user.force_login(FollowViewTest.user)
+
+    def test_authorized_user_can_follow(self):
+        """Аторизированный пользователь может зафолловиться на блогера."""
+        self.authorized_follower_user.post(
+            reverse(
+                'posts:profile_follow',
+                args=(FollowViewTest.blog_author,)
+            )
+        )
+        follow = Follow.objects.first()
+        users_list = (
+            (follow.user, FollowViewTest.user),
+            (follow.author, FollowViewTest.blog_author),
+        )
+        for name, expected in users_list:
+            with self.subTest(name=name):
+                self.assertEqual(name, expected)
+        self.assertEqual(Follow.objects.count(), 1)
+
+    def test_authorized_user_can_infollow(self):
+        """Аторизированный пользователь может отписаться от блогера."""
+        self.authorized_follower_user.post(
+            reverse(
+                'posts:profile_unfollow',
+                args=(FollowViewTest.blog_author,)
+            )
+        )
+        self.assertEqual(Follow.objects.count(), 0)
+
+    def test_new_post_for_follower(self):
+        """
+        Фолловер видит в ленте новую запись от блогера,
+        на которого подписан.
+        Не зафолловленный пользователь не видит эту запись.
+        """
+        Follow.objects.create(
+            user=FollowViewTest.user,
+            author=FollowViewTest.blog_author
+        )
+        self.authorized_blog_author.post(
+            reverse('posts:post_create'),
+            data={
+                'text': 'Пост для подписчиков'
+            },
+            follow=True
+        )
+        post = Post.objects.first()
+        response = self.authorized_follower_user.get(
+            reverse('posts:follow_index')
+        )
+        self.assertContains(response, post.text)
+        response = self.authorized_blog_author.get(
+            reverse('posts:follow_index')
+        )
+        self.assertNotContains(response, post.text)
