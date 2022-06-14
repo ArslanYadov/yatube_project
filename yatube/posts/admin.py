@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Group, Post, Comment
+from .models import Group, Post, Comment, Follow
 
 
 @admin.register(Post)
@@ -29,3 +29,10 @@ class CommentAdmin(admin.ModelAdmin):
     list_display = ('post', 'author', 'text', 'created',)
     list_filter = ('created',)
     search_fields = ('author', 'text',)
+
+
+@admin.register(Follow)
+class FollowAdmin(admin.ModelAdmin):
+    list_display = ('author', 'user')
+    list_filter = ('author', 'user')
+    search_fields = ('author',)

@@ -36,18 +36,25 @@ def profile(request, username):
     """Отображает посты пользователя, определенного по username."""
     author = get_object_or_404(User, username=username)
     page_obj = paginate_page(request, author.posts.all())
+    following = False
+    if request.user.is_authenticated:
+        following = author.following.exists()
     return render(
         request,
         'posts/profile.html',
         {
             'author': author,
             'page_obj': page_obj,
+            'following': following
         }
     )
 
 
 def post_detail(request, post_id):
-    """Отображает единичный пост, выбранный по post_id."""
+    """
+    Отображает единичный пост, выбранный по post_id.
+    Показывает список комментариев, если они есть.
+    """
     post = get_object_or_404(Post, pk=post_id)
     form = CommentForm(request.POST or None)
     comments = post.comments.filter(post=post)
@@ -138,3 +145,28 @@ def add_comment(request, post_id):
         comment.post = post
         comment.save()
     return redirect('posts:post_detail', post_id=post_id)
+
+
+@login_required
+def follow_index(request):
+    posts = Post.objects.filter(author__following__user=request.user)
+    page_obj = paginate_page(request, posts)
+    return render(request, 'posts/follow.html', {'page_obj': page_obj})
+
+
+@login_required
+def profile_follow(request, username):
+    author = get_object_or_404(User, username=username)
+    following = author.following.all()
+    if not following:
+        following.create(user=request.user, author=author)
+    return redirect('posts:profile', username)
+
+
+@login_required
+def profile_unfollow(request, username):
+    author = get_object_or_404(User, username=username)
+    following = author.following.all()
+    if following:
+        following.delete()
+    return redirect('posts:profile', username)

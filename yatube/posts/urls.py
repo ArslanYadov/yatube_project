@@ -23,4 +23,18 @@ urlpatterns = [
         views.add_comment,
         name='add_comment'
     ),
+    # Url к просмотру подписок
+    path('follow/', views.follow_index, name='follow_index'),
+    # Url к подписке
+    path(
+        'profile/<str:username>/follow/',
+        views.profile_follow,
+        name='profile_follow'
+    ),
+    # Url к отписке
+    path(
+        'profile/<str:username>/unfollow/',
+        views.profile_unfollow,
+        name='profile_unfollow'
+    ),
 ]

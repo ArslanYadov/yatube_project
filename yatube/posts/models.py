@@ -93,3 +93,23 @@ class Comment(CreatedModel):
         ordering = ['created']
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
+
+
+class Follow(CreatedModel):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Подписчик',
+        related_name='follower'
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Блогер',
+        related_name='following'
+    )
+
+    class Meta:
+        ordering = ['created']
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
