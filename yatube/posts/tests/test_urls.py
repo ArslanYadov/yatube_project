@@ -137,11 +137,3 @@ class PostURLTests(TestCase):
                     + '?next='
                     + reverse(name, args=args)
                 )
-
-    def test_non_exist_url_has_404_page(self):
-        """
-        Проверяем, что не существующий URL-адрес
-        ведет на страницу 404.
-        """
-        response = self.guest_client.get('/non-exist-page/')
-        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
