@@ -134,6 +134,9 @@ def post_edit(request, post_id):
 
 @login_required
 def add_comment(request, post_id):
+    """
+    Выводит форму для создания комментария к посту по post_id.
+    """
     post = get_object_or_404(Post, pk=post_id)
     form = CommentForm(request.POST or None)
     if form.is_valid():
@@ -146,6 +149,10 @@ def add_comment(request, post_id):
 
 @login_required
 def follow_index(request):
+    """
+    Отображает ленту с постами авторов,
+    на которых зафоловлен request.user.
+    """
     posts = Post.objects.filter(author__following__user=request.user)
     page_obj = paginate_page(request, posts)
     return render(request, 'posts/follow.html', {'page_obj': page_obj})
@@ -153,6 +160,12 @@ def follow_index(request):
 
 @login_required
 def profile_follow(request, username):
+    """
+    Обрабатывает подписку.
+    Не дает подписаться на самого себя.
+    Создает запись блогер <=> фолловер в БД.
+    Декотратор отправляет неавторизованного пользователя залогиниться.
+    """
     author = get_object_or_404(User, username=username)
     if author == request.user or author.following.exists():
         return redirect('posts:profile', username)
@@ -162,6 +175,11 @@ def profile_follow(request, username):
 
 @login_required
 def profile_unfollow(request, username):
+    """
+    Обрабатывает отписку.
+    Если такая запись в БД существует -> удаляем.
+    Декотратор отправляет неавторизованного пользователя залогиниться.
+    """
     author = get_object_or_404(User, username=username)
     if not author.following.exists():
         return redirect('posts:profile', username)
