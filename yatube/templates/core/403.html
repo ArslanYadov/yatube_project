@@ -1,5 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Custom 403{% endblock %}
+{% block title %}Ошибка 403. В доступе отказано{% endblock %}
 {% block content %}
-    <h1>Custom 403</h1>
+<main role="main" class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <h1>Ошибка 403</h1>
+      <p class="lead">Извините, в доступе отказано.</p>
+      <p class="lead">Вы запросили страницу, доступ к которой запрещен.</p>
+      <p class="lead"><a href="{% url 'posts:index' %}">Перейти на главную</a></p>
+    </div>
+  </div>
+</main> 
 {% endblock %}

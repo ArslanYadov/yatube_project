@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-from pytils.translit import slugify
 from yatube.settings import TRIM_STRING_LENGTH
 from core.models import CreatedModel
 
@@ -18,11 +17,6 @@ class Group(models.Model):
 
     def __str__(self):
         return self.title
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.title)
-        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = 'Группа'
@@ -111,5 +105,11 @@ class Follow(CreatedModel):
 
     class Meta:
         ordering = ['created']
+        constraints = [
+            models.UniqueConstraint(
+                fields=('user', 'author'),
+                name='unique_blogger_follower'
+            )
+        ]
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'

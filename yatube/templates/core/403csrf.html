@@ -1,4 +1,12 @@
 {% extends "base.html" %}
+{% block title %}Ошибка 403 CSRF{% endblock %}
 {% block content %}
-  <h1>Custom CSRF check error. 403</h1>
+<main role="main" class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <h1>Ошибка 403</h1>
+      <p class="lead">CSRF токен отсутствует или неверен.</p>
+    </div>
+  </div>
+</main> 
 {% endblock %} 

@@ -3,6 +3,8 @@
 {% block content %}
 <h1>Последние обновления на сайте</h1>
 {% include 'includes/switcher.html' %}
-{% include 'includes/post.html' with bool_flag=True %}
+{% for post in page_obj %}
+  {% include 'includes/post.html' with bool_flag=True %}
+{% endfor %} 
 {% include 'includes/paginator.html' %}
 {% endblock %}

@@ -10,6 +10,7 @@ class UserViewsTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.user = User.objects.create_user(username='TestUser')
         cls.login_url = (
             'users:login',
             'users/login.html',
@@ -71,9 +72,8 @@ class UserViewsTest(TestCase):
 
     def setUp(self):
         self.guest_client = Client()
-        self.user = User.objects.create_user(username='TestUser')
         self.authorized_client = Client()
-        self.authorized_client.force_login(self.user)
+        self.authorized_client.force_login(UserViewsTest.user)
 
     def test_urls_users_correct_template(self):
         """

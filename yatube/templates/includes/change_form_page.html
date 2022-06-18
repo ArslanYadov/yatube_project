@@ -1,41 +1,41 @@
 <div class="row justify-content-center">
-    <div class="col-md-8 p-5">
-      <div class="card">
-        <div class="card-header">
-          {% if not create_post %}
-            {{ head }}
-          {% else %}
-            {% if not post %} Добавить запись {% else %} Редактировать запись {% endif %}
-          {% endif %}
-        </div>
-        <div class="card-body">
-        
-        {% include 'includes/error_processing.html' %}
-
-        <form method="post" enctype="multipart/form-data"
-          {% if action_url %}
-            action="{% url action_url %}"
-          {% endif %}>
-          {% csrf_token %}
-        
-        {% include 'includes/form_field.html' %}
-        
+  <div class="col-md-8 p-5">
+    <div class="card">
+      <div class="card-header">
         {% if not create_post %}
-          <div class="col-md-6 offset-md-4">
-          <button type="submit" class="btn btn-primary">{{ btn }}</button>
-          {% if bool_flag %}
-            <a href="{% url 'users:password_reset' %}" class="btn btn-link">
-              Забыли пароль?
-            </a>
-          {% endif %}
+          {{ head }}
         {% else %}
-          <div class="d-flex justify-content-end">
-            <button type="submit" class="btn btn-primary">
-            {% if post %} Сохранить {% else %} Добавить {% endif %}
-          </div>
+          {% if not post %} Добавить запись {% else %} Редактировать запись {% endif %}
         {% endif %}
-        </form>
-      </div> <!-- card body -->
-    </div> <!-- card -->
-  </div> <!-- col -->
+      </div>
+      <div class="card-body">
+      
+      {% include 'includes/error_processing.html' %}
+
+      <form method="post" enctype="multipart/form-data"
+        {% if action_url %}
+          action="{% url action_url %}"
+        {% endif %}>
+        {% csrf_token %}
+      
+      {% include 'includes/form_field.html' %}
+      
+      {% if not create_post %}
+        <div class="col-md-6 offset-md-4">
+        <button type="submit" class="btn btn-primary">{{ btn }}</button>
+        {% if bool_flag %}
+          <a href="{% url 'users:password_reset' %}" class="btn btn-link">
+            Забыли пароль?
+          </a>
+        {% endif %}
+      {% else %}
+        <div class="d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary">
+          {% if post %} Сохранить {% else %} Добавить {% endif %}
+        </div>
+      {% endif %}
+      </form>
+    </div> <!-- card body -->
+  </div> <!-- card -->
+</div> <!-- col -->
 </div> <!-- row -->

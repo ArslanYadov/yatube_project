@@ -6,10 +6,13 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from posts.models import Group, Post
 from django.core.files.uploadedfile import SimpleUploadedFile
-from yatube.settings import MEDIA_ROOT
+from django.conf import settings
+from PIL import Image
+from io import BytesIO
+from http import HTTPStatus
 
 
-TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=MEDIA_ROOT)
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 User = get_user_model()
 
@@ -22,6 +25,7 @@ class PostCreateFormTests(TestCase):
         cls.user = User.objects.create_user(username='auth')
         cls.group = Group.objects.create(
             title='Тестовая группа',
+            slug='TestSlug',
             description='Тестовое описание'
         )
 
@@ -35,6 +39,17 @@ class PostCreateFormTests(TestCase):
         self.authorized_client = Client()
         self.authorized_client.force_login(PostCreateFormTests.user)
 
+    def get_image_file(self):
+        image = Image.new('RGBA', size=(1, 1), color=(0, 0, 0))
+        image_file = BytesIO()
+        image.save(image_file, 'gif')
+        image_file.seek(0)
+        file = SimpleUploadedFile(
+            name='small.gif',
+            content=image_file.read()
+        )
+        return file
+
     def test_post_create(self):
         """Тестируем, что пост создается."""
         form_data = {
@@ -47,43 +62,52 @@ class PostCreateFormTests(TestCase):
             data=form_data,
             follow=True,
         )
+        self.assertEqual(Post.objects.count(), 1)
         post = Post.objects.first()
         group = PostCreateFormTests.group
         self.assertRedirects(
             response,
             reverse('posts:profile', args=(post.author,))
         )
-        self.assertEqual(post.text, form_data['text'])
-        self.assertEqual(post.author, form_data['author'])
-        self.assertEqual(group.id, form_data['group'])
+        form_fields = (
+            (post.text, form_data['text']),
+            (post.author, form_data['author']),
+            (group.id, form_data['group']),
+        )
+        for value, expected in form_fields:
+            with self.subTest(value=value):
+                self.assertEqual(value, expected)
 
     def test_post_create_with_image(self):
         """Тестируем создание поста с картинкой."""
-        small_gif = (
-            b'\x47\x49\x46\x38\x39\x61\x02\x00'
-            b'\x01\x00\x80\x00\x00\x00\x00\x00'
-            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
-            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
-            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
-            b'\x0A\x00\x3B'
-        )
-        uploaded = SimpleUploadedFile(
-            name='small.gif',
-            content=small_gif,
-            content_type='image/gif'
-        )
         form_data = {
             'text': 'Текст из формы',
             'author': PostCreateFormTests.user,
             'group': PostCreateFormTests.group.id,
-            'image': uploaded
+            'image': self.get_image_file()
         }
-        self.authorized_client.post(
+        response = self.authorized_client.post(
             reverse('posts:post_create'),
             data=form_data,
             follow=True,
         )
         self.assertEqual(Post.objects.count(), 1)
+        post = Post.objects.first()
+        group = PostCreateFormTests.group
+        self.assertRedirects(
+            response,
+            reverse('posts:profile', args=(post.author,))
+        )
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        form_fields = (
+            (post.text, form_data['text']),
+            (post.author, form_data['author']),
+            (group.id, form_data['group']),
+            (post.image, response.context['post'].image),
+        )
+        for value, expected in form_fields:
+            with self.subTest(value=value):
+                self.assertEqual(value, expected)
 
     def test_post_create_guest_client(self):
         """
@@ -112,7 +136,8 @@ class PostCreateFormTests(TestCase):
         При редактировании поста новый не создается.
         """
         new_group = Group.objects.create(
-            title='Новая группа'
+            title='Новая группа',
+            slug='NewSlug'
         )
         new_post = Post.objects.create(
             text='Текст cуществующего поста',

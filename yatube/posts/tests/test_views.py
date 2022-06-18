@@ -8,15 +8,18 @@ from django import forms
 from posts.models import Post, Group, Follow
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.cache import cache
-from yatube.settings import MEDIA_ROOT
+from django.conf import settings
+from PIL import Image
+from io import BytesIO
+from http import HTTPStatus
 
 
-TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=MEDIA_ROOT)
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
+
 
 User = get_user_model()
 
 
-@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostPagesTests(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -24,26 +27,13 @@ class PostPagesTests(TestCase):
         cls.user = User.objects.create_user(username='auth')
         cls.group = Group.objects.create(
             title='Тестовая группа',
+            slug='TestSlug',
             description='Тестовое описание'
-        )
-        cls.small_gif = (
-            b'\x47\x49\x46\x38\x39\x61\x02\x00'
-            b'\x01\x00\x80\x00\x00\x00\x00\x00'
-            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
-            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
-            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
-            b'\x0A\x00\x3B'
-        )
-        cls.uploaded = SimpleUploadedFile(
-            name='small.gif',
-            content=PostPagesTests.small_gif,
-            content_type='image/gif'
         )
         cls.post = Post.objects.create(
             text='Тестовый пост',
             author=PostPagesTests.user,
             group=PostPagesTests.group,
-            image=PostPagesTests.uploaded
         )
         cls.index_url = (
             'posts:index',
@@ -75,11 +65,6 @@ class PostPagesTests(TestCase):
             'posts/create_post.html',
             (PostPagesTests.post.id,)
         )
-        cls.add_comment_url = (
-            'posts:add_comment',
-            'posts/post_detail.html',
-            (PostPagesTests.post.id,)
-        )
         cls.all_posts_app_urls = (
             PostPagesTests.index_url,
             PostPagesTests.group_list_url,
@@ -89,18 +74,9 @@ class PostPagesTests(TestCase):
             PostPagesTests.post_edit_url
         )
 
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
-
     def setUp(self):
         self.authorized_client = Client()
         self.authorized_client.force_login(PostPagesTests.user)
-        self.authorized_client_for_comment = Client()
-        self.authorized_client_for_comment.force_login(
-            User.objects.create(username='CommentUser')
-        )
         cache.clear()
 
     def get_context_from_response(self, response_obj, context_name):
@@ -110,7 +86,6 @@ class PostPagesTests(TestCase):
                 (response_obj.text, PostPagesTests.post.text),
                 (response_obj.author, PostPagesTests.post.author),
                 (response_obj.group.title, PostPagesTests.group.title),
-                (response_obj.image, PostPagesTests.post.image),
             )
         if context_name == 'group':
             object_list = (
@@ -247,43 +222,6 @@ class PostPagesTests(TestCase):
                 )
                 self.assertContains(response, post.text)
 
-    def test_non_authorized_user_can_not_comment_post(self):
-        """
-        Не авторизированный пользователь не может комментить посты.
-        """
-        name, _, args = PostPagesTests.add_comment_url
-        self.client.post(
-            reverse(name, args=args),
-            data={
-                'text': 'Комментарий к посту',
-            },
-            follow=True
-        )
-        post = Post.objects.first()
-        self.assertEqual(post.comments.count(), 0)
-
-    def test_authorized_user_can_comment_post(self):
-        """
-        Авторизированный пользователь может комментить посты.
-        """
-        name, _, args = PostPagesTests.add_comment_url
-        self.authorized_client_for_comment.post(
-            reverse(name, args=args),
-            data={
-                'text': 'Комментарий к посту',
-            },
-            follow=True
-        )
-        post = Post.objects.first()
-        comment = post.comments.first()
-        self.assertEqual(post.comments.count(), 1)
-        self.assertNotEqual(comment.author, post.author)
-        name, _, args = PostPagesTests.post_detail_url
-        response = self.client.get(
-            reverse(name, args=args)
-        )
-        self.assertContains(response, comment.text)
-
     def test_paginator(self):
         """Тестируем паджинацию."""
         POSTS_AMOUNT_FIRST_PAGE = 10
@@ -323,23 +261,171 @@ class PostPagesTests(TestCase):
 
     def test_index_cache(self):
         """Тестируем кэш для главное страницы."""
+        new_post = Post.objects.create(
+            text='Новый пост',
+            author=PostPagesTests.user
+        )
         name, _, _ = PostPagesTests.index_url
         response = self.authorized_client.get(
             reverse(name)
         )
-        Post.objects.create(
-            text='Новый пост',
-            author=PostPagesTests.user
-        )
-        response_new = self.authorized_client.get(
+        response_old = response
+        new_post.delete()
+        response = self.authorized_client.get(
             reverse(name)
         )
-        self.assertEqual(response.content, response_new.content)
+        self.assertEqual(response.content, response_old.content)
         cache.clear()
-        response_new = self.authorized_client.get(
+        response = self.authorized_client.get(
             reverse(name)
         )
-        self.assertNotEqual(response.content, response_new.content)
+        self.assertNotEqual(response.content, response_old.content)
+
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
+class PostWithImageViewTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create_user(username='auth')
+        cls.group = Group.objects.create(
+            title='Тестовая группа',
+            slug='TestSlug',
+            description='Тестовое описание'
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+
+    def get_image_file(self):
+        image = Image.new('RGBA', size=(1, 1), color=(0, 0, 0))
+        image_file = BytesIO()
+        image.save(image_file, 'gif')
+        image_file.seek(0)
+        file = SimpleUploadedFile(
+            name='small.gif',
+            content=image_file.read()
+        )
+        return file
+
+    def test_post_with_image_use_correct_context(self):
+        """
+        Проверяем, что при выводе поста с картинкой
+        изображение передаётся в словаре context:
+        - на главную страницу,
+        - на страницу профайла,
+        - на страницу группы,
+        - на отдельную страницу поста.
+        """
+        post = Post.objects.create(
+            text='Тестовый пост c картинкой',
+            author=PostWithImageViewTest.user,
+            group=PostWithImageViewTest.group,
+            image=self.get_image_file()
+        )
+        index_url = ('posts:index', ())
+        group_list_url = (
+            'posts:group_list',
+            (post.group.slug,)
+        )
+        profile_url = (
+            'posts:profile',
+            (post.author,)
+        )
+        post_detail_url = (
+            'posts:post_detail',
+            (post.id,)
+        )
+        post_urls = (
+            index_url,
+            group_list_url,
+            profile_url,
+            post_detail_url
+        )
+        for name, args in post_urls:
+            with self.subTest(name=name):
+                response = self.client.get(
+                    reverse(name, args=args)
+                )
+                if not post_detail_url:
+                    self.assertEqual(
+                        post.image,
+                        response.context['page_obj'][0].image
+                    )
+                self.assertEqual(
+                    post.image,
+                    response.context['post'].image
+                )
+
+
+class PostWithCommentViewTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create_user(username='auth')
+        cls.group = Group.objects.create(
+            title='Тестовая группа',
+            slug='TestSlug',
+            description='Тестовое описание'
+        )
+        cls.post = Post.objects.create(
+            text='Тестовый пост с комментарием',
+            author=PostWithCommentViewTest.user,
+            group=PostWithCommentViewTest.group,
+        )
+        cls.post_detail_url = (
+            'posts:post_detail',
+            (PostWithCommentViewTest.post.id,)
+        )
+        cls.add_comment_url = (
+            'posts:add_comment',
+            (PostWithCommentViewTest.post.id,)
+        )
+
+    def setUp(self):
+        self.authorized_client_for_comment = Client()
+        self.authorized_client_for_comment.force_login(
+            User.objects.create(username='CommentUser')
+        )
+
+    def test_non_authorized_user_can_not_comment_post(self):
+        """
+        Не авторизированный пользователь не может комментить посты.
+        """
+        name, args = PostWithCommentViewTest.add_comment_url
+        self.client.post(
+            reverse(name, args=args),
+            data={
+                'text': 'Комментарий к посту',
+            },
+            follow=True
+        )
+        post = Post.objects.first()
+        self.assertEqual(post.comments.count(), 0)
+
+    def test_authorized_user_can_comment_post(self):
+        """
+        Авторизированный пользователь может комментить посты.
+        """
+        name, args = PostWithCommentViewTest.add_comment_url
+        self.authorized_client_for_comment.post(
+            reverse(name, args=args),
+            data={
+                'text': 'Комментарий к посту',
+            },
+            follow=True
+        )
+        post = Post.objects.first()
+        comment = post.comments.first()
+        self.assertEqual(post.comments.count(), 1)
+        self.assertNotEqual(comment.author, post.author)
+        name, args = PostWithCommentViewTest.post_detail_url
+        response = self.client.get(
+            reverse(name, args=args)
+        )
+        self.assertContains(response, comment.text)
 
 
 class FollowViewTest(TestCase):
@@ -357,12 +443,13 @@ class FollowViewTest(TestCase):
 
     def test_authorized_user_can_follow(self):
         """Аторизированный пользователь может зафолловиться на блогера."""
-        self.authorized_follower_user.post(
+        response = self.authorized_follower_user.get(
             reverse(
                 'posts:profile_follow',
                 args=(FollowViewTest.blog_author,)
             )
         )
+        self.assertEqual(response.status_code, HTTPStatus.FOUND)
         follow = Follow.objects.first()
         users_list = (
             (follow.user, FollowViewTest.user),
@@ -374,20 +461,39 @@ class FollowViewTest(TestCase):
         self.assertEqual(Follow.objects.count(), 1)
 
     def test_authorized_user_can_infollow(self):
-        """Аторизированный пользователь может отписаться от блогера."""
-        self.authorized_follower_user.post(
+        """
+        Аторизированный пользователь может отписаться от блогера.
+        После отписки от блогера его посты не появляются в ленте.
+        """
+        Follow.objects.create(
+            user=FollowViewTest.user,
+            author=FollowViewTest.blog_author
+        )
+        response = self.authorized_follower_user.get(
             reverse(
                 'posts:profile_unfollow',
                 args=(FollowViewTest.blog_author,)
             )
         )
+        self.assertEqual(response.status_code, HTTPStatus.FOUND)
         self.assertEqual(Follow.objects.count(), 0)
+        self.authorized_blog_author.post(
+            reverse('posts:post_create'),
+            data={
+                'text': 'Пост для подписчиков'
+            },
+            follow=True
+        )
+        post = Post.objects.first()
+        response = self.authorized_follower_user.get(
+            reverse('posts:follow_index')
+        )
+        self.assertNotContains(response, post.text)
 
     def test_new_post_for_follower(self):
         """
         Фолловер видит в ленте новую запись от блогера,
         на которого подписан.
-        Не зафолловленный пользователь не видит эту запись.
         """
         Follow.objects.create(
             user=FollowViewTest.user,

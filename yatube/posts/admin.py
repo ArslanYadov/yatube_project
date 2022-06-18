@@ -22,6 +22,7 @@ class GroupAdmin(admin.ModelAdmin):
     search_fields = ('title', 'description',)
     list_filter = ('title',)
     empty_value_display = '-пусто-'
+    prepopulated_fields = {'slug': ('title',)}
 
 
 @admin.register(Comment)

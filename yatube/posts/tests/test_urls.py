@@ -16,6 +16,7 @@ class PostURLTests(TestCase):
         cls.user = User.objects.create_user(username='auth')
         cls.group = Group.objects.create(
             title='Тестовая группа',
+            slug='TestSlug',
             description='Тестовое описание'
         )
         cls.post = Post.objects.create(
