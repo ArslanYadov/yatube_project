@@ -36,7 +36,13 @@ def profile(request, username):
     """Отображает посты пользователя, определенного по username."""
     author = get_object_or_404(User, username=username)
     page_obj = paginate_page(request, author.posts.all())
-    following = request.user.is_authenticated and author.following.exists()
+    following = (
+        request.user.is_authenticated
+        and
+        author.following.filter(
+            author__following__user=request.user
+        ).exists()
+    )
     return render(
         request,
         'posts/profile.html',
