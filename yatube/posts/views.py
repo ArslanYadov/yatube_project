@@ -174,11 +174,11 @@ def profile_follow(request, username):
     Декотратор отправляет неавторизованного пользователя залогиниться.
     """
     author = get_object_or_404(User, username=username)
-    follow = author.following.filter(
+    is_follow = author.following.filter(
         user=request.user,
         author=author
-    )
-    if author == request.user or follow.exists():
+    ).exists()
+    if author == request.user or is_follow:
         return redirect('posts:profile', username)
     author.following.create(user=request.user, author=author)
     return redirect('posts:profile', username)
@@ -192,11 +192,14 @@ def profile_unfollow(request, username):
     Декотратор отправляет неавторизованного пользователя залогиниться.
     """
     author = get_object_or_404(User, username=username)
-    follow = author.following.filter(
+    is_follow = author.following.filter(
         user=request.user,
         author=author
-    )
-    if not follow.exists():
+    ).exists()
+    if not is_follow:
         return redirect('posts:profile', username)
-    follow.delete()
+    author.following.filter(
+        user=request.user,
+        author=author
+    ).delete()
     return redirect('posts:profile', username)
