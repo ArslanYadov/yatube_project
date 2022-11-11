@@ -19,15 +19,15 @@ POSTS_AMOUNT_PER_PAGE = 10 # Your amount posts for page
 ```
 - Установить виртуальное окружение
 ```
-$ python -m venv venv
+$ python3 -m venv venv
 ```
 - Активировать виртуальное окружение
 ```
-$ source venv/Scripts/activate
+$ . venv/bin/activate
 ```
 - Установить зависимости из файла requirements.txt
 ```
-$ pip install -r requirements.txt
+$ python3 -m pip install -U pip; pip install -r requirements.txt
 ```
 - В папке с файлом manage.py выполнить миграции:
 ```
