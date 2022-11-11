@@ -8,8 +8,8 @@
 
 ![demo-gif](https://github.com/ArslanYadov/hw05_final/blob/master/presentation/yatube_presentation.gif)
 ### Технологии
-* Python 3.7
-* Django 2.2.19
+* [Python 3.7](https://docs.python.org/3.7/)
+* [Django 2.2.19](https://docs.djangoproject.com/en/4.1/)
 ## Запуск проекта в dev-режиме
 - В корневой директории проекта создать файл ```.env``` и установить свои значения для ```SECRET_KEY```, ```DEBUG``` и ```POSTS_AMOUNT_PER_PAGE```
 ```
