@@ -40,4 +40,4 @@ $ python manage.py runserver
 ## Автор
 Арслан Ядов
 
-E-mail: [Arslan Yadov](mailto:arslanyadov@yandex.ru?subject=%20Yatube%20project)
+E-mail: [Arslan Yadov](mailto:arsyy90@gmail.com?subject=%20Yatube%20project)
